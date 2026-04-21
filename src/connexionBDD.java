@@ -3,7 +3,6 @@ public class connexionBDD {
 
     static void afficherInfosConnexion()
     {
-        System.out.println(url);
     }
 
     
