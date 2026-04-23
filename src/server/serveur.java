@@ -5,37 +5,65 @@ import java.io.*;
 import java.net.*; 
 //talk to other computers via wifi using Socket
 import java.util.*;
+
+import server.clientHandler;
 //contains List etc
-public class serveur {
-    private ServerSocket sSocket;
-    private int serverPort;
-    private List<ClientHandler> activeUsers; 
-    // TODO fix in our diagram class we should
-    //  add a list of active 
-    // users to who we wanna send messages otherwise we already have active clients in our database
+public class serveur 
+{
+        private final SessionManager sessionManager = new SessionManager();
+        private ServerSocket sSocket;
+        private static final int serverPort = 8080;
+        // TODO fix in our diagram class we should
+        //  add a list of active 
+        // users to who we wanna send messages otherwise we already have active clients in our database
 
-
-    public serveur(int port)
-    {
-        this.serverPort = port;
-        this.activeUsers = new ArrayList<>();
-    }
-
-    public void startServer()
-    {
-        sSocket = new serverSocket(serverPort);
-        System.out.println("SERVER: Listening at port" + port + "...");
-        
-        while(!sSocket.isClosed()) //after each threead creation 
-                                    // we make a new thread waiting for another acception 
+        public void stopServer()
         {
-            Socket socket = sSocket.accept();
-            System.out.println("SERVER: A new connection has arrived!");
-            ClientHander = new clientHandler(socket,this);
-            Thread thread = new Thread(clientHandler);
-            thread.start();
+            sSocket.close();
         }
-        
-    }
+
+        public void startServer()
+        {
+            try
+            {
+                sSocket = new serverSocket(serverPort);
+                System.out.println("SERVER: Listening at port" + port + "...");
+                
+                while(true) //after each threead creation 
+                                            // we make a new thread waiting for another acception 
+                {
+                    Socket socket = sSocket.accept();
+                    System.out.println("SERVER: A new connection has arrived!");
+                    ClientHandler newClient = new clientHandler(socket,sessionManager);
+                    Thread thread = new Thread(clientHandler);
+                    thread.setDaemon(true); //instant disconnection when turning off a server
+                    thread.start();
+                }
+            }
+            catch(Exception e)
+            {
+                stopServer();
+            }
+        }
+
     
-}
+
+       /*  public synchronized void addClient(ClientHandler client)
+        {
+            activeUsers.add(client);
+        }
+
+        public synchronized void brodcast(String message, Clienthandler sender)
+        {
+            for(ClientHandler instance : activeUsers)
+            {
+                if(sender != instance)
+                {
+                    instance.sendMessage();
+                }
+            }
+        }*/ 
+
+
+
+    }
