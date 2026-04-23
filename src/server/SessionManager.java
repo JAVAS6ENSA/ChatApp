@@ -2,7 +2,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-public class sessionManager {
+public class SessionManager {
     private final Map<String,ClientHandler> onlineClients = new ConcurrentHashMap<>();
 
     public void registerClientSession(String username,ClientHandler client)
