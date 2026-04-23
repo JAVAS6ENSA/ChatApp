@@ -45,25 +45,4 @@ public class serveur
                 stopServer();
             }
         }
-
-    
-
-       /*  public synchronized void addClient(ClientHandler client)
-        {
-            activeUsers.add(client);
-        }
-
-        public synchronized void brodcast(String message, Clienthandler sender)
-        {
-            for(ClientHandler instance : activeUsers)
-            {
-                if(sender != instance)
-                {
-                    instance.sendMessage();
-                }
-            }
-        }*/ 
-
-
-
     }
