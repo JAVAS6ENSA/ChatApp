@@ -7,19 +7,31 @@ import java.net.*;
 import java.util.*;
 //contains List etc
 public class serveur {
-    private serverSocket socket;
+    private ServerSocket sSocket;
     private int serverPort;
     private List<ClientHandler> activeUsers; 
     // TODO fix in our diagram class we should
     //  add a list of active 
     // users to who we wanna send messages otherwise we already have active clients in our database
-    
 
-    public server(int port)
+
+    public serveur(int port)
     {
         this.serverPort = port;
         this.activeUsers = new ArrayList<>();
     }
 
+    public void startServer()
+    {
+        sSocket = new serverSocket(serverPort);
+        System.out.println("SERVER: Listening at port" + port + "...");
+        
+        while(!sSocket.isClosed())
+        {
+            Socket socket = sSocket.accept();
+            System.out.println("SERVER: A new connection has arrived!");
+        }
+        
+    }
     
 }
