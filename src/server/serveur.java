@@ -19,15 +19,21 @@ public class serveur
 
         public void stopServer()
         {
+            try{
             sSocket.close();
+        }
+            catch(Exception exp)
+            {
+                exp.printStackTrace();
+            }
         }
 
         public void startServer()
         {
             try
             {
-                sSocket = new serverSocket(serverPort);
-                System.out.println("SERVER: Listening at port" + port + "...");
+                sSocket = new ServerSocket(serverPort);
+                System.out.println("SERVER: Listening at port" + serverPort + "...");
                 
                 while(true) //after each threead creation 
                                             // we make a new thread waiting for another acception 
