@@ -26,10 +26,14 @@ public class serveur {
         sSocket = new serverSocket(serverPort);
         System.out.println("SERVER: Listening at port" + port + "...");
         
-        while(!sSocket.isClosed())
+        while(!sSocket.isClosed()) //after each threead creation 
+                                    // we make a new thread waiting for another acception 
         {
             Socket socket = sSocket.accept();
             System.out.println("SERVER: A new connection has arrived!");
+            ClientHander = new clientHandler(socket,this);
+            Thread thread = new Thread(clientHandler);
+            thread.start();
         }
         
     }
