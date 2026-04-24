@@ -1,12 +1,5 @@
-import java.io.*; 
-// possede le bufferReader qui lit les messages venants des utilisateurs
-//printWriter envois des messages vers les utilisateurs
-//input outputstreams a travers lesquels on envoi les messages 
-import java.net.*; 
-//talk to other computers via wifi using Socket
-import java.util.*;
-
-import server.clientHandler;
+import java.net.ServerSocket;
+import java.net.Socket;
 //contains List etc
 public class serveur 
 {
@@ -40,8 +33,8 @@ public class serveur
                 {
                     Socket socket = sSocket.accept();
                     System.out.println("SERVER: A new connection has arrived!");
-                    ClientHandler newClient = new clientHandler(socket,sessionManager);
-                    Thread thread = new Thread(clientHandler);
+                    clientHandler newClient = new clientHandler(socket,sessionManager);
+                    Thread thread = new Thread(newClient);
                     thread.setDaemon(true); //instant disconnection when turning off a server
                     thread.start();
                 }

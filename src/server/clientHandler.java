@@ -1,7 +1,5 @@
-package server;
 import java.io.*;
 import java.net.Socket;
-public enum actions {LOGIN,REGISTER,LOGOUT,GET_ONLINE}
 public class clientHandler implements Runnable{
     private final Socket socket;
     private final SessionManager sessionManager;
@@ -17,14 +15,36 @@ public class clientHandler implements Runnable{
     }
 
 
+    private void handleLogin(String[] parts)
+    {
+        if(parts.length < 3)
+        {
+            sendToClient("ERREUR: Format incorrecte");
+            return; // TODO work on exception
+        }
+
+        String username = parts[1];
+        String password = parts [2];
+    }
     private void handleMessage(String data)
     {
         String[] parts = data.split("\\|", -1); // i seprate my data with | I used \\ to tell it that | is not a tabulation character the -1 take "" as an elements and adds it to the table
         switch(parts[0]) // this is the action of the user for example ("LOGIN", "OMAR", "1234", "EMAIL","")
         {
-            case actions.LOGIN.toString() :
-                handleLogin();
-            
+            case "LOGIN" :
+                handleLogin(parts);
+                break;
+            case "REGISTER":
+                handleRegister(parts);
+                break;
+            case "LOGOUT":
+                handleLogout();
+                break;
+            case "GET_ONLINE":
+                handleGetOnline();
+                break;
+            default:
+                sendToClient("ERREUR: Action non reconnue: " + parts[0]);  
         }
     }
     public void run()
