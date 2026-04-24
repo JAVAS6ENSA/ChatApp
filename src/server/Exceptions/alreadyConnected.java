@@ -1,3 +1,4 @@
+package Exceptions;
 public class alreadyConnected extends Exception {
 
     public alreadyConnected()

@@ -1,3 +1,4 @@
+package Exceptions;
 public class invalidCoordinates extends Exception {
     public invalidCoordinates()
     {

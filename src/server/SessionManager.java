@@ -3,9 +3,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 public class SessionManager {
-    private final Map<String,clientHandler> onlineClients = new ConcurrentHashMap<>();
+    private static final Map<String,clientHandler> onlineClients = new ConcurrentHashMap<>();
 
-    public void registerClientSession(String username,clientHandler client)
+    public static void registerClientSession(String username,clientHandler client)
     {
         onlineClients.put(username,client);
         System.out.println("[Session] " + "-> " + username + "is now online");

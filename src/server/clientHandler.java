@@ -1,5 +1,14 @@
 import java.io.*;
 import java.net.Socket;
+
+import Exceptions.Blank;
+import Exceptions.IncorrectFormat;
+import Exceptions.alreadyConnected;
+import Exceptions.banException;
+import Exceptions.invalidCoordinates;
+import Exceptions.shortName;
+import Exceptions.shortt;
+import Exceptions.banExcpetion;
 public class clientHandler implements Runnable{
     private final Socket socket;
     private final SessionManager sManager;
@@ -17,7 +26,7 @@ public class clientHandler implements Runnable{
 
 
     //partie authentification
-    private void handleLogin(String[] parts) throws IncorrectFormat,Blank,alreadyConnected, invalidCoordinates
+    private void (String[] parts) throws IncorrectFormat,Blank,alreadyConnected, invalidCoordinates, banException
     {
         if(parts.length < 3)
         {
@@ -40,7 +49,7 @@ public class clientHandler implements Runnable{
             throw new alreadyConnected();
         }
 
-        String result = database.loginUser(username,password);
+        String[] result = database.loginUser(username,password);
         if(result == null)
         {
             sendToClient("ERROR: invalid usename or password");
@@ -49,9 +58,59 @@ public class clientHandler implements Runnable{
         else if (result.equals("BLOCKED"))
         {
             sendToClient("ERREUR: Utilisateur bloqué veuillez contacter l'administrateur pour toute reclamation");
+            throw new banException();
+        }
+        else
+        {
+            this.username = result[0];
+            this.role = result[1];
+            sManager.registerClientSession(username,this);
+            sendToClient("Connecté en tant que: " + username);
+
+
         }
     }
-    private void handleMessage(String data)
+
+
+    private void Inscrire(String[] parts) throws IncorrectFormat,shortt
+    {
+        if(parts.length(4))
+        {
+            sendToClient("ERREUR: vous devez entrer un email, mot de passe et un username ");
+            throw new IncorrectFormat();
+        }
+
+        String user = parts[1].trim();
+        String password = parts[2].trim();
+        String email = parts[3].trim();
+
+        if(user.length() < 5)
+        {
+            sendToClient("Erreur: nom d'utilisateur tres cours (minimum 5)");
+            throw new shortt();
+        }
+
+        if(!password.matches(".*[@&#~!$%^*]+.*") || password.length() < 8) 
+        {
+            sendToClient("Erreur: mot de passe est cours ou doit contenir des caractere speciaux parmi [@&#~!$%^*] (min longueur 8) ");
+            throw new shortt();
+        }
+
+        if(!email.contains("@"))
+        {
+            sendToClient("Erreur: Email doit contenir un @ exemple: javaapplication@ensa.ma ");
+            throw new IncorrectFormat();
+        }
+
+        boolean verification = databaseManager.resigter(user,password,email);
+        sendToClient(verficiation? "Compte creé avec succés":"nom d'utilisateur ou email déja utilisé ");
+    }
+
+    public void Deconnexion()
+    {
+
+    }
+    private void EnvoyerRequete(String data)
     {
         String[] parts = data.split("\\|", -1); // i seprate my data with | I used \\ to tell it that | is not a tabulation character the -1 take "" as an elements and adds it to the table
         switch(parts[0]) // this is the action of the user for example ("LOGIN", "OMAR", "1234", "EMAIL","")

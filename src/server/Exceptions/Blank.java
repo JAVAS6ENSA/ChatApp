@@ -1,3 +1,4 @@
+package Exceptions;
 public class Blank extends Exception {
     public Blank()
     {
