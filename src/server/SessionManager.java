@@ -3,9 +3,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 public class SessionManager {
-    private final Map<String,ClientHandler> onlineClients = new ConcurrentHashMap<>();
+    private final Map<String,clientHandler> onlineClients = new ConcurrentHashMap<>();
 
-    public void registerClientSession(String username,ClientHandler client)
+    public void registerClientSession(String username,clientHandler client)
     {
         onlineClients.put(username,client);
         System.out.println("[Session] " + "-> " + username + "is now online");
@@ -24,7 +24,7 @@ public class SessionManager {
         return onlineClients.containsKey(username);
     }
 
-    public ClientHandler getHandler(String username)
+    public clientHandler getHandler(String username)
     {
         return onlineClients.get(username);
     }
@@ -35,11 +35,11 @@ public class SessionManager {
     }
 
     private void broadcastOnlineList(){
-        String list = String.join("-",onlineClient.keySet());
+        String list = String.join("-", onlineClients.keySet());
         String message = "Currently Online: " + list;
-        for(ClientHandler client : onlineClients)
+        for(clientHandler client : onlineClients.values())
         {
-            h.sendToClient(msg);
+           // client.sendToClient(message);
         }
     }
 

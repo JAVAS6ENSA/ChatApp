@@ -2,29 +2,54 @@ import java.io.*;
 import java.net.Socket;
 public class clientHandler implements Runnable{
     private final Socket socket;
-    private final SessionManager sessionManager;
+    private final SessionManager sManager;
     private PrintWriter going;
     private BufferedReader coming;
     private String username = null;
     private String role = null;
 
-    public clientHandler(Socket socket,SessionManager sessionManager)
+    public clientHandler(Socket socket,SessionManager sManager)
     {
         this.socket = socket;
-        this.sessionManager = sessionManager;
+        this.sManager = sManager;
     }
 
 
-    private void handleLogin(String[] parts)
+
+    //partie authentification
+    private void handleLogin(String[] parts) throws IncorrectFormat,Blank,alreadyConnected, invalidCoordinates
     {
         if(parts.length < 3)
         {
             sendToClient("ERREUR: Format incorrecte");
-            return; // TODO work on exception
+            throw new IncorrectFormat();
         }
 
         String username = parts[1];
         String password = parts [2];
+
+        if(username.isEmpty() || password.isEmpty())
+        {
+            sendToClient("ERROR: vous devez entrer le mot de passe et le nom");
+            throw new Blank();
+        }
+
+        if(sManager.isOnline(username))
+        {
+            sendToClient("Connexion impossible: Vous etes déja connectés dans un autre appareil");
+            throw new alreadyConnected();
+        }
+
+        String result = database.loginUser(username,password);
+        if(result == null)
+        {
+            sendToClient("ERROR: invalid usename or password");
+            throw new invalidCoordinates();
+        }
+        else if (result.equals("BLOCKED"))
+        {
+            sendToClient("ERREUR: Utilisateur bloqué veuillez contacter l'administrateur pour toute reclamation");
+        }
     }
     private void handleMessage(String data)
     {
