@@ -1,7 +1,7 @@
 package server;
 import java.io.*;
 import java.net.Socket;
-
+public enum actions {LOGIN,REGISTER,LOGOUT,GET_ONLINE}
 public class clientHandler implements Runnable{
     private final Socket socket;
     private final SessionManager sessionManager;
@@ -16,6 +16,17 @@ public class clientHandler implements Runnable{
         this.sessionManager = sessionManager;
     }
 
+
+    private void handleMessage(String data)
+    {
+        String[] parts = data.split("\\|", -1); // i seprate my data with | I used \\ to tell it that | is not a tabulation character the -1 take "" as an elements and adds it to the table
+        switch(parts[0]) // this is the action of the user for example ("LOGIN", "OMAR", "1234", "EMAIL","")
+        {
+            case actions.LOGIN.toString() :
+                handleLogin();
+            
+        }
+    }
     public void run()
     {
         try 
@@ -26,7 +37,7 @@ public class clientHandler implements Runnable{
             String line;
             while((line = coming.readLine()) != null)
             {
-               // handleMessage(line.trim());
+               handleMessage(line.trim());
             }
             
         } catch (Exception e) 
