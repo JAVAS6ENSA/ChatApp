@@ -6,9 +6,9 @@ import Exceptions.IncorrectFormat;
 import Exceptions.alreadyConnected;
 import Exceptions.banException;
 import Exceptions.invalidCoordinates;
-import Exceptions.shortName;
 import Exceptions.shortt;
-import Exceptions.banExcpetion;
+import Exceptions.shortt;
+import Exceptions.banException;
 public class clientHandler implements Runnable{
     private final Socket socket;
     private final SessionManager sManager;
@@ -26,11 +26,11 @@ public class clientHandler implements Runnable{
 
 
     //partie authentification
-    private void (String[] parts) throws IncorrectFormat,Blank,alreadyConnected, invalidCoordinates, banException
+    private void seConnecter(String[] parts) throws IncorrectFormat,Blank,alreadyConnected, invalidCoordinates, banException
     {
         if(parts.length < 3)
         {
-            sendToClient("ERREUR: Format incorrecte");
+            envoyerAuClient("ERREUR: Format incorrecte");
             throw new IncorrectFormat();
         }
 
@@ -39,44 +39,43 @@ public class clientHandler implements Runnable{
 
         if(username.isEmpty() || password.isEmpty())
         {
-            sendToClient("ERROR: vous devez entrer le mot de passe et le nom");
+            envoyerAuClient("ERROR: vous devez entrer le mot de passe et le nom");
             throw new Blank();
         }
 
         if(sManager.isOnline(username))
         {
-            sendToClient("Connexion impossible: Vous etes déja connectés dans un autre appareil");
+            envoyerAuClient("Connexion impossible: Vous etes déja connectés dans un autre appareil");
             throw new alreadyConnected();
         }
 
         String[] result = database.loginUser(username,password);
         if(result == null)
         {
-            sendToClient("ERROR: invalid usename or password");
+            envoyerAuClient("ERROR: invalid usename or password");
             throw new invalidCoordinates();
         }
         else if (result.equals("BLOCKED"))
         {
-            sendToClient("ERREUR: Utilisateur bloqué veuillez contacter l'administrateur pour toute reclamation");
-            throw new banException();
+            envoyerAuClient("ERREUR: Utilisateur bloqué veuillez contacter l'administrateur pour toute reclamation");
         }
         else
         {
             this.username = result[0];
             this.role = result[1];
             sManager.registerClientSession(username,this);
-            sendToClient("Connecté en tant que: " + username);
+            envoyerAuClient("Connecté en tant que: " + username);
 
 
         }
     }
 
 
-    private void Inscrire(String[] parts) throws IncorrectFormat,shortt
+    private void Inscrire(String[] parts) throws IncorrectFormat
     {
-        if(parts.length(4))
+        if(parts.length < 4)
         {
-            sendToClient("ERREUR: vous devez entrer un email, mot de passe et un username ");
+            envoyerAuClient("ERREUR: vous devez entrer un email, mot de passe et un username ");
             throw new IncorrectFormat();
         }
 
@@ -86,49 +85,93 @@ public class clientHandler implements Runnable{
 
         if(user.length() < 5)
         {
-            sendToClient("Erreur: nom d'utilisateur tres cours (minimum 5)");
-            throw new shortt();
+            envoyerAuClient("Erreur: nom d'utilisateur tres cours (minimum 5)");
         }
 
         if(!password.matches(".*[@&#~!$%^*]+.*") || password.length() < 8) 
         {
-            sendToClient("Erreur: mot de passe est cours ou doit contenir des caractere speciaux parmi [@&#~!$%^*] (min longueur 8) ");
-            throw new shortt();
+            envoyerAuClient("Erreur: mot de passe est cours ou doit contenir des caractere speciaux parmi [@&#~!$%^*] (min longueur 8) ");
         }
 
         if(!email.contains("@"))
         {
-            sendToClient("Erreur: Email doit contenir un @ exemple: javaapplication@ensa.ma ");
-            throw new IncorrectFormat();
+            envoyerAuClient("Erreur: Email doit contenir un @ exemple: javaapplication@ensa.ma ");
         }
 
         boolean verification = databaseManager.resigter(user,password,email);
-        sendToClient(verficiation? "Compte creé avec succés":"nom d'utilisateur ou email déja utilisé ");
+        envoyerAuClient(verification? "Compte creé avec succés":"nom d'utilisateur ou email déja utilisé ");
     }
 
     public void Deconnexion()
     {
+        SessionManager.removeClientSession(username);
+        username = null;
+        role = null;
+        try {
+            socket.close();
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+        envoyerAuClient("Deconnecté avec succés");
+    }
+
+
+    void avoirListeEnLigne()
+    {
+        if(username == null)
+        {
+            envoyerAuClient("ERREUR: utilisateur non authentifié, il ne peut pas consulter la liste des personne en ligne");
+            return;
+        }
+        String list = String.join("," ,SessionManager.getOnlineUsers());
 
     }
-    private void EnvoyerRequete(String data)
+
+
+    public void envoyerAuClient(String msg)
+    {
+        if(going != null) going.println(msg);
+    }
+
+    public String getUsername()
+    {
+        return username;
+    }
+
+    public String getRole()
+    {
+        return role;
+    }
+    public boolean estConnu()
+    {
+        return username != null;
+    }
+
+    public boolean estAdmin()
+    {
+        return role.equals("ADMIN");
+    }
+    private void EnvoyerRequete(String data) throws IncorrectFormat,Blank,alreadyConnected, invalidCoordinates, banException
     {
         String[] parts = data.split("\\|", -1); // i seprate my data with | I used \\ to tell it that | is not a tabulation character the -1 take "" as an elements and adds it to the table
         switch(parts[0]) // this is the action of the user for example ("LOGIN", "OMAR", "1234", "EMAIL","")
         {
             case "LOGIN" :
-                handleLogin(parts);
+                seConnecter(parts);
                 break;
             case "REGISTER":
-                handleRegister(parts);
+                Inscrire(parts);
                 break;
             case "LOGOUT":
-                handleLogout();
+                Deconnexion();
                 break;
             case "GET_ONLINE":
-                handleGetOnline();
+                avoirListeEnLigne();
                 break;
             default:
-                sendToClient("ERREUR: Action non reconnue: " + parts[0]);  
+                envoyerAuClient("ERREUR: Action non reconnue: " + parts[0]);  
         }
     }
     public void run()
