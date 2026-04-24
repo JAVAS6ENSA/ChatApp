@@ -27,11 +27,11 @@ public class serveur
             {
                 sSocket = new ServerSocket(serverPort);
                 System.out.println("SERVER: Listening at port" + serverPort + "...");
-                
+                //the server does not have a remote ip or port since eveytime we make a connection it changes
                 while(true) //after each threead creation 
                                             // we make a new thread waiting for another acception 
                 {
-                    Socket socket = sSocket.accept();
+                    Socket socket = sSocket.accept(); //here is gives to that socket the local port and ip and from which client it the client just connected to it basically gives it everything
                     System.out.println("SERVER: A new connection has arrived!");
                     clientHandler newClient = new clientHandler(socket,sessionManager);
                     Thread thread = new Thread(newClient);

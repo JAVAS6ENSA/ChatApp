@@ -170,6 +170,7 @@ public class clientHandler implements Runnable{
             case "GET_ONLINE":
                 avoirListeEnLigne();
                 break;
+                //TODO ADD ADMIN ACTIONS
             default:
                 envoyerAuClient("ERREUR: Action non reconnue: " + parts[0]);  
         }
@@ -184,7 +185,7 @@ public class clientHandler implements Runnable{
             String line;
             while((line = coming.readLine()) != null)
             {
-               handleMessage(line.trim());
+               EnvoyerRequete(line.trim());
             }
             
         } catch (Exception e) 
