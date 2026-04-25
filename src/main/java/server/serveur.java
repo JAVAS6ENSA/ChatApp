@@ -6,6 +6,7 @@ import java.net.Socket;
 public class serveur 
 {
         private final SessionManager sessionManager = new SessionManager();
+        private final AppelManager appelManager = new AppelManager();
         private ServerSocket sSocket;
         public static final int serverPort = 8080;
         // TODO fix in our diagram class we should
@@ -35,7 +36,7 @@ public class serveur
                 {
                     Socket socket = sSocket.accept(); //here is gives to that socket the local port and ip and from which client it the client just connected to it basically gives it everything
                     System.out.println("SERVER: A new connection has arrived!");
-                    clientHandler newClient = new clientHandler(socket,sessionManager);
+                    clientHandler newClient = new clientHandler(socket, sessionManager, appelManager);
                     Thread thread = new Thread(newClient);
                     thread.setDaemon(true); //instant disconnection when turning off a server
                     thread.start();

@@ -1,6 +1,11 @@
+package server;
+
+import model.User;
+import model.SessionAppel;
+import model.StatutAppel;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 public class AppelManager {
 
     // Thread-safe + accès O(1)

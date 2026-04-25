@@ -1,4 +1,4 @@
-package test.java;
+package model;
 
 public enum StatutAppel {
     LIBRE,
@@ -11,4 +11,3 @@ public enum StatutAppel {
         return this == RINGING || this == IN_CALL;
     }
 }
-

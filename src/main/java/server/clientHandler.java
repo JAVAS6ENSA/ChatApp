@@ -3,6 +3,7 @@ package server;
 import server.Exceptions.*;
 import dao.UserDAO;
 import model.User;
+import model.SessionAppel;
 import databases.DBConnection;
 
 import java.io.BufferedReader;
@@ -16,14 +17,16 @@ import java.sql.SQLException;
 public class clientHandler implements Runnable {
     private final Socket socket;
     private final SessionManager sManager;
+    private final AppelManager appelManager;
     private PrintWriter going;
     private BufferedReader coming;
     private String username = null;
     private String role = null;
 
-    public clientHandler(Socket socket, SessionManager sManager) {
+    public clientHandler(Socket socket, SessionManager sManager, AppelManager appelManager) {
         this.socket = socket;
         this.sManager = sManager;
+        this.appelManager = appelManager;
     }
 
     // ── LOGIN ─────────────────────────────────────────────────────────────────
@@ -99,6 +102,8 @@ public class clientHandler implements Runnable {
     // ── LOGOUT ────────────────────────────────────────────────────────────────
     public void Deconnexion() {
         if (username != null) {
+            SessionAppel session = appelManager.getAppelByUser(username);
+            if (session != null) terminerAppelInterne(session);
             SessionManager.removeClientSession(username);
             envoyerAuClient("LOGOUT|" + username);
             username = null;
@@ -146,9 +151,102 @@ public class clientHandler implements Runnable {
             case "LOGOUT":     Deconnexion();              break;
             case "GET_ONLINE": avoirListeEnLigne();        break;
             case "PRIVATE":    envoyerMessagePrive(parts); break;
+            case "CALL_REQUEST": traiterDemandeAppel(parts);   break;
+            case "CALL_ACCEPT":  traiterAcceptationAppel(parts);break;
+            case "CALL_REFUSE":  traiterRefusAppel(parts);     break;
+            case "CALL_END":     traiterFinAppel(parts);       break;
             default:
                 envoyerAuClient("ERREUR: Action non reconnue: " + parts[0]);
         }
+    }
+
+    // ─── CALL LOGIC ───────────────────────────────────────────────────────────
+    private void traiterDemandeAppel(String[] parts) {
+        if (username == null) { envoyerAuClient("ERREUR: non authentifié"); return; }
+        if (parts.length < 2)  { envoyerAuClient("ERREUR: destinataire manquant"); return; }
+
+        String targetName = parts[1].trim();
+
+        if (targetName.equals(username)) {
+            envoyerAuClient("ERREUR: impossible de s'appeler soi-même");
+            return;
+        }
+
+        clientHandler target = SessionManager.getHandler(targetName);
+        if (target == null) {
+            envoyerAuClient("ERREUR: utilisateur hors ligne ou introuvable");
+            return;
+        }
+
+        User caller   = new User(0, username, "online", false);
+        User receiver = new User(0, targetName, "online", false);
+
+        boolean ok = appelManager.demarrerAppel(caller, receiver);
+        if (!ok) {
+            envoyerAuClient("ERREUR: appel impossible (vous ou l'autre utilisateur est déjà en appel)");
+            return;
+        }
+
+        envoyerAuClient("CALL_RINGING|" + targetName);
+        target.envoyerAuClient("INCOMING_CALL|" + username);
+    }
+
+    private void traiterAcceptationAppel(String[] parts) {
+        if (username == null) { envoyerAuClient("ERREUR: non authentifié"); return; }
+
+        SessionAppel session = appelManager.getAppelByUser(username);
+        if (session == null) { envoyerAuClient("ERREUR: aucun appel en attente"); return; }
+
+        boolean ok = appelManager.accepterAppel(username);
+        if (!ok) { envoyerAuClient("ERREUR: impossible d'accepter l'appel"); return; }
+
+        String appelantName = session.getAppelant().getUsername();
+        clientHandler appelant = SessionManager.getHandler(appelantName);
+
+        envoyerAuClient("CALL_STARTED|" + appelantName);
+        if (appelant != null) appelant.envoyerAuClient("CALL_ACCEPTED|" + username);
+    }
+
+    private void traiterRefusAppel(String[] parts) {
+        if (username == null) { envoyerAuClient("ERREUR: non authentifié"); return; }
+
+        SessionAppel session = appelManager.getAppelByUser(username);
+        if (session == null) { envoyerAuClient("ERREUR: aucun appel en cours"); return; }
+
+        String appelantName = session.getAppelant().getUsername();
+        boolean ok = appelManager.refuserAppel(username);
+        if (!ok) { envoyerAuClient("ERREUR: impossible de refuser l'appel"); return; }
+
+        envoyerAuClient("CALL_REFUSED_SENT|" + appelantName);
+        clientHandler appelant = SessionManager.getHandler(appelantName);
+        if (appelant != null) appelant.envoyerAuClient("CALL_REFUSED|" + username);
+    }
+
+    private void traiterFinAppel(String[] parts) {
+        if (username == null) { envoyerAuClient("ERREUR: non authentifié"); return; }
+
+        SessionAppel session = appelManager.getAppelByUser(username);
+        if (session == null) { envoyerAuClient("ERREUR: aucun appel actif"); return; }
+
+        String autreUsername = session.getAppelant().getUsername().equals(username)
+                ? session.getRecepteur().getUsername()
+                : session.getAppelant().getUsername();
+
+        boolean ok = appelManager.terminerAppel(username);
+        if (!ok) { envoyerAuClient("ERREUR: impossible de terminer l'appel"); return; }
+
+        envoyerAuClient("CALL_ENDED|" + autreUsername);
+        clientHandler autre = SessionManager.getHandler(autreUsername);
+        if (autre != null) autre.envoyerAuClient("CALL_ENDED|" + username);
+    }
+
+    private void terminerAppelInterne(SessionAppel session) {
+        String autreUsername = session.getAppelant().getUsername().equals(username)
+                ? session.getRecepteur().getUsername()
+                : session.getAppelant().getUsername();
+        appelManager.terminerAppel(username);
+        clientHandler autre = SessionManager.getHandler(autreUsername);
+        if (autre != null) autre.envoyerAuClient("CALL_ENDED|" + username);
     }
 
     // ── HELPERS ───────────────────────────────────────────────────────────────

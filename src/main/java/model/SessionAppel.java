@@ -1,4 +1,4 @@
-package test.java;
+package model;
 
 public class SessionAppel {
 
@@ -10,9 +10,6 @@ public class SessionAppel {
         this.appelant = appelant;
         this.recepteur = recepteur;
         this.statut = StatutAppel.RINGING;
-
-        appelant.setEtat(StatutAppel.RINGING);
-        recepteur.setEtat(StatutAppel.RINGING);
     }
 
     public User getAppelant() {
@@ -29,19 +26,13 @@ public class SessionAppel {
 
     public void accepter() {
         statut = StatutAppel.IN_CALL;
-        appelant.setEtat(StatutAppel.IN_CALL);
-        recepteur.setEtat(StatutAppel.IN_CALL);
     }
 
     public void refuser() {
         statut = StatutAppel.REFUSED;
-        appelant.setEtat(StatutAppel.LIBRE);
-        recepteur.setEtat(StatutAppel.LIBRE);
     }
 
     public void terminer() {
         statut = StatutAppel.ENDED;
-        appelant.setEtat(StatutAppel.LIBRE);
-        recepteur.setEtat(StatutAppel.LIBRE);
     }
 }

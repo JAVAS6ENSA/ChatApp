@@ -5,25 +5,33 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e2431bd7-8182-4c83-8e9b-ddd7f57f517c" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/Messaging/MessageReceiver.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/Messaging/Messagesender.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/Views/ChatApp.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/Views/ChatView.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/server/Exceptions/Blank.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/server/Exceptions/IncorrectFormat.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/server/Exceptions/alreadyConnected.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/server/Exceptions/banException.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/server/Exceptions/invalidCoordinates.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/server/Exceptions/shortt.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/server/SessionManager.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/server/clientAPP.JAVA" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/server/clientHandler.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/server/serveur.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/server/session.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chatApp.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/chat_app.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Server/ClientAPP.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Server/ClientHandler.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Server/Serveur.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Server/Session.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Server/SessionManager.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/Views/ChatApp.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/Views/ChatApp.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/call.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/server/clientAPP.JAVA" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/server/clientHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/server/clientHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/server/serveur.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/server/serveur.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/ClassMessage.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/User.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/appelManager.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/sessionAppel.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/statutAppel.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/call.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/org/example/Main.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/test-classes/AppelManager.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/test-classes/ClassMessage.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/test-classes/SessionAppel.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/test-classes/StatutAppel.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/test-classes/User.class" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,16 +52,35 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Application.ChatApp.executor": "Run",
     "Application.Main.executor": "Run",
     "Maven.ChatApp [org.openjfx:javafx-maven-plugin:0.0.8:run].executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "buffer",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "test",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Users/LENOVO/Desktop/S 6/JAVA/chat_app"
+    "last_opened_file_path": "/home/omarelhorre/Downloads/Compressed/openjfx-26.0.1_linux-x64_bin-sdk/javafx-sdk-26.0.1/lib",
+    "project.structure.last.edited": "Libraries",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.2",
+    "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RunManager">
+    <configuration name="ChatApp" type="Application" factoryName="Application">
+      <option name="ALTERNATIVE_JRE_PATH" value="openjdk-25" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <option name="MAIN_CLASS_NAME" value="Views.ChatApp  " />
+      <module name="chatApp" />
+      <option name="VM_PARAMETERS" value="--module-path /media/omarelhorre/6228117D28115201/openjfx-26.0.1_linux-x64_bin-sdk/javafx-sdk-26.0.1/lib --add-modules javafx.controls,javafx.fxml" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -68,8 +95,13 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1777126674535</updated>
+      <workItem from="1777132146705" duration="71000" />
+      <workItem from="1777132272087" duration="1003000" />
     </task>
     <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
