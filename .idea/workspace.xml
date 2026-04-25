@@ -4,41 +4,26 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e2431bd7-8182-4c83-8e9b-ddd7f57f517c" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chatApp.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/chat_app.sql" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Server/ClientAPP.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Server/ClientHandler.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Server/Serveur.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Server/Session.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Server/SessionManager.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/Views/ChatApp.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/Views/ChatApp.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/call.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/server/clientAPP.JAVA" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/server/clientHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/server/clientHandler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/server/serveur.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/server/serveur.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/ClassMessage.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/User.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/appelManager.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/sessionAppel.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/statutAppel.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/call.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/org/example/Main.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/test-classes/AppelManager.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/test-classes/ClassMessage.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/test-classes/SessionAppel.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/test-classes/StatutAppel.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/test-classes/User.class" beforeDir="false" />
-    </list>
+    <list default="true" id="e2431bd7-8182-4c83-8e9b-ddd7f57f517c" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="Git.Settings">
+    <favorite-branches>
+      <branch-storage>
+        <map>
+          <entry type="LOCAL">
+            <value>
+              <list>
+                <branch-info repo="$PROJECT_DIR$" source="test" />
+              </list>
+            </value>
+          </entry>
+        </map>
+      </branch-storage>
+    </favorite-branches>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProjectColorInfo">{
@@ -57,6 +42,7 @@
     "Maven.ChatApp [org.openjfx:javafx-maven-plugin:0.0.8:run].executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
@@ -96,7 +82,7 @@
       <option name="presentableId" value="Default" />
       <updated>1777126674535</updated>
       <workItem from="1777132146705" duration="71000" />
-      <workItem from="1777132272087" duration="1003000" />
+      <workItem from="1777132272087" duration="1399000" />
     </task>
     <servers />
   </component>
