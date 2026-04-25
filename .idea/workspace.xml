@@ -4,41 +4,56 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="fc175161-0f28-4c7c-858a-78e35c4d88b2" name="Changes" comment="" />
+    <list default="true" id="e2431bd7-8182-4c83-8e9b-ddd7f57f517c" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/Messaging/MessageReceiver.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/Messaging/Messagesender.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/Views/ChatApp.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/Views/ChatView.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/server/Exceptions/Blank.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/server/Exceptions/IncorrectFormat.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/server/Exceptions/alreadyConnected.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/server/Exceptions/banException.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/server/Exceptions/invalidCoordinates.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/server/Exceptions/shortt.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/server/SessionManager.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/server/clientAPP.JAVA" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/server/clientHandler.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/server/serveur.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/server/session.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/example/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/example/Main.java" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 4
-}]]></component>
-  <component name="ProjectId" id="3CpR6f92xIrzOCnrqzTw4SGdmYu" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="3CqwzeE2d65KedGlSLaOA8FjWi2" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "Application.ChatApp.executor": "Run",
+    "Application.Main.executor": "Run",
     "Maven.ChatApp [org.openjfx:javafx-maven-plugin:0.0.8:run].executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "kotlin-language-version-configured": "true"
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "buffer",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/LENOVO/Desktop/S 6/JAVA/chat_app"
   }
 }]]></component>
-  <component name="RunManager">
-    <configuration name="ChatApp" type="Application" factoryName="Application">
-      <option name="MAIN_CLASS_NAME" value="views.ChatApp" />
-      <module name="ChatApp" />
-      <option name="VM_PARAMETERS" value="--module-path &quot;C:\javafx\lib&quot; --add-modules javafx.controls,javafx.fxml" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -48,12 +63,31 @@
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="fc175161-0f28-4c7c-858a-78e35c4d88b2" name="Changes" comment="" />
-      <created>1777080352870</created>
+      <changelist id="e2431bd7-8182-4c83-8e9b-ddd7f57f517c" name="Changes" comment="" />
+      <created>1777126674535</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1777080352870</updated>
+      <updated>1777126674535</updated>
     </task>
     <servers />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/Views/ChatView.java</url>
+          <line>227</line>
+          <properties>
+            <option name="lambda-ordinal" value="-1" />
+          </properties>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/main/java/Views/ChatView.java</url>
+          <line>226</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
