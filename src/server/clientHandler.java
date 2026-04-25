@@ -9,6 +9,9 @@ import Exceptions.invalidCoordinates;
 import Exceptions.shortt;
 import Exceptions.shortt;
 import Exceptions.banException;
+import dao.UserDAO;
+import model.User;
+
 public class clientHandler implements Runnable{
     private final Socket socket;
     private final SessionManager sManager;
@@ -48,8 +51,17 @@ public class clientHandler implements Runnable{
             envoyerAuClient("Connexion impossible: Vous etes déja connectés dans un autre appareil");
             throw new alreadyConnected();
         }
-
-        String[] result = database.loginUser(username,password);
+        UserDAO userDAO = new UserDAO();
+        User result = userDAO.login(username, password);
+        if (result == null) {
+            envoyerAuClient("ERROR: invalid username or password");
+            throw new invalidCoordinates();
+        } else {
+            this.username = result.getUsername();
+            this.role = "USER"; // wla zid role f User model
+            sManager.registerClientSession(username, this);
+            envoyerAuClient("Connecté en tant que: " + username);
+        }
         if(result == null)
         {
             envoyerAuClient("ERROR: invalid usename or password");
@@ -98,8 +110,8 @@ public class clientHandler implements Runnable{
             envoyerAuClient("Erreur: Email doit contenir un @ exemple: javaapplication@ensa.ma ");
         }
 
-        boolean verification = databaseManager.resigter(user,password,email);
-        envoyerAuClient(verification? "Compte creé avec succés":"nom d'utilisateur ou email déja utilisé ");
+        UserDAO userDAO = new UserDAO();
+        boolean verification = userDAO.addUser(new User(0, user, email, password, "", "online"));        envoyerAuClient(verification? "Compte creé avec succés":"nom d'utilisateur ou email déja utilisé ");
     }
 
     public void Deconnexion()
@@ -170,6 +182,19 @@ public class clientHandler implements Runnable{
             case "GET_ONLINE":
                 avoirListeEnLigne();
                 break;
+            case "PRIVATE":
+                // PRIVATE|senderUsername|receiverUsername|content
+                if (parts.length >= 4) {
+                    String toUser = parts[2];
+                    String content = parts[3];
+                    clientHandler target = SessionManager.getHandler(toUser);
+                    if (target != null) {
+                        target.envoyerAuClient("PRIVATE|" + username + "|" + toUser + "|" + content);
+                    } else {
+                        envoyerAuClient("ERREUR: " + toUser + " n'est pas en ligne");
+                    }
+                }
+                 break;
                 //TODO ADD ADMIN ACTIONS
             default:
                 envoyerAuClient("ERREUR: Action non reconnue: " + parts[0]);  
