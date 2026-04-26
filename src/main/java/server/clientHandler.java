@@ -1,5 +1,6 @@
 package server;
 
+import dao.compteDAO;
 import server.Exceptions.*;
 import dao.UserDAO;
 import model.User;
@@ -8,6 +9,7 @@ import databases.DBConnection;
 
 import java.io.*;
 import java.net.Socket;
+import java.rmi.UnexpectedException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
@@ -51,13 +53,13 @@ public class clientHandler implements Runnable {
         if(!check)
         {
             envoyerAuClient("[CLIENT HANDLER] l'utilisateur que vous essayer d'appeller est déja en appel en cours!");
-            throw new Exception;
+            throw new Exception();
         }
         envoyerAuClient("Ringing...");
         recepteur.envoyerAuClient("Appel entrante " + username );
     }
 
-    private void traiterAccepterAppel(String[] parts) throws Exception
+    private void traiterAcceptationAppel(String[] parts) throws Exception, UnexpectedBehavior
     {
         if(username == null) {envoyerAuClient("[CLIENT HANDLER ERROR] Veuillez s'authentifier"); throw new Exception(); }
         SessionAppel session = appelManager.getAppelByUser(username);
@@ -75,8 +77,53 @@ public class clientHandler implements Runnable {
 
         String currentIp = getIpAddress();
         //if the starter disconnects right after
-        String callerIp = starter != null? starter.getIpAddress() : "127.0.0.1";
+        String callerIp = starter != null? starter.getIpAddress() : "127.0.0.1"; //this would never happen as if he diconnected at between accepter appel and getAppelent.getName I am leaving the ip adress thing for debut
+        //TODO delete the ip adress later (unsafe)
+        if(starter == null)  { envoyerAuClient(" [UNEXPECTED BEHAVIOR] Debut Appel avec vous meme (loopback)  " + username+ "sur " +callerIp); throw new UnexpectedBehavior(); }
+        envoyerAuClient("Debut Appel avec " + starter.getUsername() + "Running at " +callerIp);
 
+    }
+
+    //TODO traiter refus- traiter terminer
+
+    private void traiterRefusAppel(String[] parts) throws Exception
+    {
+        if(username == null) {envoyerAuClient("[CLIENT HANDLER ERROR] Veuillez s'authentifier"); throw new Exception(); }
+        SessionAppel session = appelManager.getAppelByUser(username);
+        if(session == null) {envoyerAuClient("[CLIENT HANDLER] Aucun appel entrant"); throw new Exception();}
+
+        boolean ok = appelManager.refuserAppel(username);
+
+        if(!ok)
+        {
+            envoyerAuClient("[CLIENT HANDLER] Impossible d'accepter l'appel");
+            throw new Exception();
+        }
+
+        envoyerAuClient("Appel refusé avec succés");
+
+        clientHandler starter = SessionManager.getHandler(session.getAppelant().getUsername());
+
+        if(starter != null) starter.envoyerAuClient("Aucune reponse");
+    }
+
+
+    private void traiterFinAppel(String[] parts) throws Exception
+    {
+        //we dont know who called so we have to figure it out from session
+        if(username == null) {envoyerAuClient("[CLIENT HANDLER ERROR] Veuillez s'authentifier"); throw new Exception(); }
+        SessionAppel session = appelManager.getAppelByUser(username);
+        if(session == null)
+        {
+            envoyerAuClient("Aucune appel actif");
+            throw new Exception();
+        }
+        String autre = session.getAppelant().getUsername().equals(username )? session.getRecepteur().getUsername(): session.getAppelant().getUsername();
+        clientHandler other = SessionManager.getHandler(autre);
+        boolean ok = appelManager.terminerAppel(username);
+        if(!ok) envoyerAuClient("impossible de terminer");
+        if(other != null) other.envoyerAuClient("Appel terminé");
+        envoyerAuClient("Appel terminé");
 
     }
 
@@ -120,7 +167,7 @@ public class clientHandler implements Runnable {
         envoyerAuClient("Connexion réussite :" + result.getUsername());
     }
 
-    // ── REGISTER ──────────────────────────────────────────────────────────────
+
     private void Inscrire(String[] parts) throws IncorrectFormat {
         if (parts.length < 4) {
             envoyerAuClient("[CLIENT HANDLER] FORMAT INCORRECTE");
@@ -167,11 +214,25 @@ public class clientHandler implements Runnable {
         }
     }
 
+//terminer appel interne to only tell the current user but not the other user
+
+    private void terminerAppelInterne(SessionAppel session)
+    {
+
+        String otherUser = session.getAppelant().getUsername().equals(username)?  session.getRecepteur().getUsername() : session.getAppelant().getUsername();
+        clientHandler otherClient = SessionManager.getHandler(otherUser);
+        appelManager.terminerAppel(username);
+        if(otherClient != null)
+        otherClient.envoyerAuClient("terminé");
+    }
+
+
 
     public void Deconnexion() {
-        if(appelManager.getAppelByUser(username) == null)
+        if(appelManager.getAppelByUser(username) != null)
         {
             terminerAppelInterne(appelManager.getAppelByUser(username));
+        }
             SessionManager.removeClientSession(username);
             envoyerAuClient("Deconnecté...");
             try
@@ -180,7 +241,7 @@ public class clientHandler implements Runnable {
             } catch (Exception e) {
                e.printStackTrace();
             }
-        }
+
     }
 
 
@@ -208,7 +269,7 @@ public class clientHandler implements Runnable {
             }
         }
 
-    private void EnvoyerRequete(String data) throws IncorrectFormat, Blank, alreadyConnected, invalidCoordinates {
+    private void EnvoyerRequete(String data) throws IncorrectFormat, Blank, alreadyConnected, invalidCoordinates,Exception {
         String[] parts = data.split("\\|", 4);
         switch (parts[0]) {
             case "LOGIN":      seConnecter(parts);         break;
@@ -216,10 +277,10 @@ public class clientHandler implements Runnable {
             case "LOGOUT":     Deconnexion();              break;
             case "GET_ONLINE": avoirListeEnLigne();        break;
             case "PRIVATE":    envoyerMessagePrive(parts); break;
-            //case "CALL_REQUEST": traiterDemandeAppel(parts);   break;
-           // case "CALL_ACCEPT":  traiterAcceptationAppel(parts);break;
-           // case "CALL_REFUSE":  traiterRefusAppel(parts);     break;
-          //  case "CALL_END":     traiterFinAppel(parts);       break;
+            case "CALL_REQUEST": traiterDemandeAppel(parts);   break;
+           case "CALL_ACCEPT":  traiterAcceptationAppel(parts);break;
+            case "CALL_REFUSE":  traiterRefusAppel(parts);     break;
+           case "CALL_END":     traiterFinAppel(parts);       break;
             default:
                 envoyerAuClient("ERROR|Action non reconnue: " + parts[0]);
         }

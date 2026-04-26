@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="Views.registerController"
+      spacing="12" alignment="CENTER"
+      style="-fx-padding: 40; -fx-max-width: 300;">
+
+    <Label text="Créer un compte"
+           style="-fx-font-size: 22px; -fx-font-weight: bold;"/>
+
+    <TextField fx:id="usernameField"   promptText="Nom d'utilisateur"/>
+    <TextField fx:id="emailField"      promptText="Email"/>
+    <PasswordField fx:id="passwordField" promptText="Mot de passe"/>
+    <PasswordField fx:id="confirmField"  promptText="Confirmer mot de passe"/>
+
+    <Label fx:id="errorLabel"
+           style="-fx-text-fill: red;"
+           wrapText="true"/>
+
+    <Button fx:id="registerButton"
+            text="S'inscrire"
+            onAction="#handleRegister"
+            maxWidth="Infinity"/>
+
+    <Button text="Déjà un compte ? Se connecter"
+            onAction="#goToLogin"
+            style="-fx-background-color: transparent; -fx-text-fill: #0078D4;"/>
+</VBox>

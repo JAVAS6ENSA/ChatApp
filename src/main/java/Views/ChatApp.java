@@ -9,7 +9,7 @@ public class ChatApp extends Application {
 
     @Override
     public void start(Stage stage) {
-        java.util.List<String> choices = java.util.Arrays.asList("omar@mail.com", "youssef@mail.com");
+      /*  java.util.List<String> choices = java.util.Arrays.asList("omar@mail.com", "youssef@mail.com");
         javafx.scene.control.ChoiceDialog<String> dialog = new javafx.scene.control.ChoiceDialog<>("omar@mail.com", choices);
         dialog.setTitle("Connexion rapide");
         dialog.setHeaderText("Sélectionnez votre compte");
@@ -26,7 +26,9 @@ public class ChatApp extends Application {
             stage.setScene(scene);
             stage.setOnCloseRequest(e -> chatView.disconnect());
             stage.show();
-        });
+        });*/
+        SceneManager.init(stage);
+        SceneManager.switchTo("login.fxml");
     }
 
 

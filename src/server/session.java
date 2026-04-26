@@ -1,10 +1,8 @@
-package server;
-
 public class session {
     private static session instance;
     private String username;
     private String role;
-    public static session getInstance()
+    private static session getInstance()
     {
         if(instance == null) return new session();
         return instance;

@@ -25,7 +25,7 @@ public class AppelManager
         public boolean demarrerAppel(User caller, User reciever) throws AlreadyOngoingCall // i guess it could be easier if we use a client handler for this one
         {
             SessionAppel session = new SessionAppel(caller,reciever);
-
+            if(caller.getUsername().equals(reciever.getUsername())) return false;
             SessionAppel user1 = appels.putIfAbsent(caller.getUsername(),session); //puts each user with his session in the map
             SessionAppel user2 = appels.putIfAbsent(reciever.getUsername(),session);
             //if user in session it returns his session
@@ -48,12 +48,11 @@ public class AppelManager
             //this synchronized keyword tells me not this session is no accessed by other threads
             synchronized (session)
             {
-                if(!session.getRecepteur().getUsername().equals(reciever)) return false;//makes sure u dont answer to ur own call
+                if(!session.getRecepteur().getUsername().equals(reciever)) return false;
                 if (session.getStatut() != StatutAppel.RINGING) return false;
                 session.accepter();
                 return true;
             }
-
             //TODO FACTORIZE THIS BLOCK IT IS REPETITIVE BETWEEN ACCEPTER AND REFUSER
         }
 
