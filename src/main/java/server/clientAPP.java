@@ -5,16 +5,7 @@ import java.net.*;
 
 public class clientAPP {
 
-    private static clientAPP instance;
-
-    public static clientAPP getInstance() {
-        if (instance == null) {
-            instance = new clientAPP();
-        }
-        return instance;
-    }
-
-    private clientAPP() {}
+    public clientAPP() {}
 
     private Socket socket;
     private PrintWriter sortant;
@@ -23,14 +14,16 @@ public class clientAPP {
     public static int PORT = 8080;
     public static String HOST = "localhost";
 
-    public void connect() {
+    public boolean connect() {
         try {
             socket  = new Socket(HOST, PORT);
             sortant = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
             entrant = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             System.out.println("[ClientAPP] Connecté au serveur");
+            return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("[ClientAPP] Erreur de connexion: " + e.getMessage());
+            return false;
         }
     }
 
@@ -57,6 +50,5 @@ public class clientAPP {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        instance = null;
     }
 }

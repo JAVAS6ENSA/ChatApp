@@ -33,6 +33,7 @@ public class ChatView extends BorderPane {
     // ── State ─────────────────────────────────────────────────────────────────
     private final String currentUsername;
     private final String targetUsername;
+    private final String password;
 
     // ── UI ────────────────────────────────────────────────────────────────────
     private VBox      messagesBox;
@@ -40,12 +41,18 @@ public class ChatView extends BorderPane {
     private TextField  inputField;
     private Label      statusLabel;
 
+    private streaming.CallManager currentCallManager;
+    private CallStage             currentCallStage;
+    private clientAPP             client;
+
     // currentUsername = username dyal user connecté
     // targetUsername  = username dyal contact
-    public ChatView(String currentUsername, String targetUsername) {
+    public ChatView(String currentUsername, String targetUsername, String password) {
         this.currentUsername = currentUsername;
         this.targetUsername  = targetUsername;
+        this.password        = password;
 
+        this.client = new clientAPP();
         buildUI();
         connectToServer();
     }
@@ -82,12 +89,38 @@ public class ChatView extends BorderPane {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        Button callBtn = new Button("📞");
+        callBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 16px; -fx-cursor: hand;");
+        callBtn.setOnAction(e -> initiateCall());
+
+        Button videoBtn = new Button("📹");
+        videoBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-size: 16px; -fx-cursor: hand;");
+        videoBtn.setOnAction(e -> initiateCall()); // Pour l'instant on utilise le même déclencheur
+
+        Button endCallBtn = new Button("📵");
+        endCallBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #ef4444; -fx-font-size: 16px; -fx-cursor: hand;");
+        endCallBtn.setOnAction(e -> terminateCall());
+
         Label connLabel = new Label("🔒 Chiffré");
         connLabel.setFont(Font.font("System", 11));
         connLabel.setTextFill(Color.web(TEXT_MUTED));
 
-        header.getChildren().addAll(avatar, nameBox, spacer, connLabel);
+        header.getChildren().addAll(avatar, nameBox, spacer, callBtn, videoBtn, endCallBtn, connLabel);
         return header;
+    }
+
+    private void initiateCall() {
+        addSystemMessage("Tentative d'appel vers " + targetUsername + "...");
+        client.send("CALL_REQUEST|" + targetUsername);
+        showCallUI(model.StatutAppel.LIBRE);
+    }
+
+    private void terminateCall() {
+        client.send("CALL_END|" + targetUsername);
+        if (currentCallManager != null) {
+            currentCallManager.stopCall();
+            currentCallManager = null;
+        }
     }
 
     private ScrollPane buildChatArea() {
@@ -149,7 +182,8 @@ public class ChatView extends BorderPane {
         Circle circle = new Circle(20);
         circle.setFill(Color.web(ACCENT));
 
-        Label label = new Label(String.valueOf(name.charAt(0)).toUpperCase());
+        String initial = (name != null && !name.isEmpty()) ? String.valueOf(name.charAt(0)).toUpperCase() : "?";
+        Label label = new Label(initial);
         label.setFont(Font.font("System", FontWeight.BOLD, 14));
         label.setTextFill(Color.WHITE);
 
@@ -227,7 +261,7 @@ public class ChatView extends BorderPane {
         String content = inputField.getText().trim();
         if (content.isEmpty()) return;
 
-        clientAPP.getInstance().send(
+        client.send(
                 "PRIVATE|" + currentUsername + "|" + targetUsername + "|" + content
         );
         addMessage(content, true);
@@ -238,12 +272,15 @@ public class ChatView extends BorderPane {
 
     private void connectToServer() {
         new Thread(() -> {
-            clientAPP client = clientAPP.getInstance();
-            client.connect();
-            addSystemMessage("Connecté au serveur ✓");
+            if (client.connect()) {
+                addSystemMessage("Connecté au serveur ✓");
+            } else {
+                addSystemMessage("❌ Impossible de se connecter au serveur (vérifiez qu'il est lancé)");
+                return;
+            }
 
             // Login
-            client.send("LOGIN|" + currentUsername + "|hashed_pw_1");
+            client.send("LOGIN|" + currentUsername + "|" + password);
 
             // Listen
             String line;
@@ -258,8 +295,54 @@ public class ChatView extends BorderPane {
         switch (parts[0]) {
             case "PRIVATE":
                 // PRIVATE|from|to|content
-                if (parts.length == 4 && parts[1].equals(targetUsername)) {
+                // On accepte le message si on est dans la bonne fenêtre
+                if (parts.length == 4) {
                     addMessage(parts[3], false);
+                }
+                break;
+            case "INCOMING_CALL":
+                if (parts.length > 1) {
+                    Platform.runLater(() -> {
+                        showCallUI(model.StatutAppel.RINGING);
+                    });
+                }
+                break;
+            case "CALL_RINGING":
+                addSystemMessage("Appel en cours vers " + (parts.length > 1 ? parts[1] : "") + "...");
+                break;
+            case "CALL_ACCEPTED":
+                addSystemMessage((parts.length > 1 ? parts[1] : "") + " a accepté l'appel.");
+                if (currentCallStage != null) currentCallStage.getView().updateState(model.StatutAppel.IN_CALL);
+                if (parts.length > 2) {
+                    currentCallManager = new streaming.CallManager(parts[2], true);
+                    currentCallManager.startCall();
+                }
+                break;
+            case "CALL_STARTED":
+                addSystemMessage("Appel démarré avec " + (parts.length > 1 ? parts[1] : ""));
+                if (currentCallStage != null) currentCallStage.getView().updateState(model.StatutAppel.IN_CALL);
+                if (parts.length > 2) {
+                    currentCallManager = new streaming.CallManager(parts[2], false);
+                    currentCallManager.startCall();
+                }
+                break;
+            case "CALL_REFUSED":
+            case "CALL_REFUSED_SENT":
+                addSystemMessage("Appel refusé.");
+                if (currentCallStage != null) {
+                    currentCallStage.getView().updateState(model.StatutAppel.REFUSED);
+                    closeCallUIWithDelay();
+                }
+                break;
+            case "CALL_ENDED":
+                addSystemMessage("Appel terminé.");
+                if (currentCallManager != null) {
+                    currentCallManager.stopCall();
+                    currentCallManager = null;
+                }
+                if (currentCallStage != null) {
+                    currentCallStage.getView().updateState(model.StatutAppel.ENDED);
+                    closeCallUIWithDelay();
                 }
                 break;
             case "LOGIN_OK":
@@ -280,7 +363,33 @@ public class ChatView extends BorderPane {
         }
     }
 
+    private void showCallUI(model.StatutAppel status) {
+        Platform.runLater(() -> {
+            if (currentCallStage != null) currentCallStage.close();
+            
+            currentCallStage = new CallStage(targetUsername, status);
+            CallView view = currentCallStage.getView();
+            
+            view.setOnAccept(() -> client.send("CALL_ACCEPT|"));
+            view.setOnDecline(() -> client.send("CALL_REFUSE|"));
+            view.setOnHangUp(() -> terminateCall());
+            
+            currentCallStage.show();
+        });
+    }
+
+    private void closeCallUIWithDelay() {
+        javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2));
+        pause.setOnFinished(e -> {
+            if (currentCallStage != null) {
+                currentCallStage.close();
+                currentCallStage = null;
+            }
+        });
+        pause.play();
+    }
+
     public void disconnect() {
-        clientAPP.getInstance().deconnecter();
+        client.deconnecter();
     }
 }

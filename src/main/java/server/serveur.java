@@ -15,9 +15,9 @@ public class serveur
 
         public void stopServer()
         {
-            try{
-            sSocket.close();
-        }
+            try {
+                if (sSocket != null) sSocket.close();
+            }
             catch(Exception exp)
             {
                 exp.printStackTrace();
@@ -42,9 +42,13 @@ public class serveur
                     thread.start();
                 }
             }
-            catch(Exception e)
-            {
+            catch(Exception e) {
+                e.printStackTrace();
                 stopServer();
             }
         }
+
+    public static void main(String[] args) {
+        new serveur().startServer();
     }
+}

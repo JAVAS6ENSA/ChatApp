@@ -3,122 +3,86 @@ package server;
 import model.User;
 import model.SessionAppel;
 import model.StatutAppel;
+import server.Exceptions.*;
 
-import java.util.Map;
+import java.util.Map; //HASHMAP
 import java.util.concurrent.ConcurrentHashMap;
-public class AppelManager {
+public class AppelManager
+    {
+        //this map contains all current calls
+        private final Map<String,SessionAppel> appels = new ConcurrentHashMap<>();
 
-    // Thread-safe + accès O(1)
-    private final Map<String, SessionAppel> appels = new ConcurrentHashMap<>();
-
-    // =========================================================
-    // 🔥 O(1) lookup
-    // =========================================================
-    public SessionAppel getAppelByUser(String username) {
-        return appels.get(username);
-    }
-
-    public boolean estDejaEnAppel(String username) {
-        return appels.containsKey(username);
-    }
-
-    // =========================================================
-    // 📞 DÉMARRER APPEL (thread-safe)
-    // =========================================================
-    public boolean demarrerAppel(User caller, User receiver) {
-
-        // éviter auto-appel
-        if (caller.getUsername().equals(receiver.getUsername())) {
-            return false;
+        public SessionAppel getAppelByUser(String username)
+        {
+            return appels.get(username);
         }
 
-        SessionAppel session = new SessionAppel(caller, receiver);
-
-        // insertion atomique
-        SessionAppel c1 = appels.putIfAbsent(caller.getUsername(), session);
-        SessionAppel c2 = appels.putIfAbsent(receiver.getUsername(), session);
-
-        if (c1 != null || c2 != null) {
-            // rollback sécurisé
-            appels.remove(caller.getUsername(), session);
-            appels.remove(receiver.getUsername(), session);
-            return false;
+        public boolean estDejaEnAppel(String username)
+        {
+            return appels.containsKey(username);
         }
 
-        return true;
-    }
+        public boolean demarrerAppel(User caller, User reciever) throws AlreadyOngoingCall // i guess it could be easier if we use a client handler for this one
+        {
+            SessionAppel session = new SessionAppel(caller,reciever);
 
-    // =========================================================
-    // 📲 ACCEPTER APPEL
-    // =========================================================
-    public boolean accepterAppel(String username) {
-
-        SessionAppel session = getAppelByUser(username);
-        if (session == null) return false;
-
-        synchronized (session) {
-            if (!session.getRecepteur().getUsername().equals(username)) {
-                return false;
+            SessionAppel user1 = appels.putIfAbsent(caller.getUsername(),session); //puts each user with his session in the map
+            SessionAppel user2 = appels.putIfAbsent(reciever.getUsername(),session);
+            //if user in session it returns his session
+            //mtn si l un dex deux est deja en appel en cours?
+            //ATTENTION : la fonction putIfAbsent returns nulls si ajouté avec succés
+            if(user1 != null || user2 != null)
+            {
+                appels.remove(caller.getUsername(),session);
+                appels.remove(reciever.getUsername(),session);
+                //ATTENTION cette fonction ne supprime pas l utilsateur de son autre session c juste de la session qu on tante creer
+                throw new AlreadyOngoingCall();
             }
-
-            if (session.getStatut() != StatutAppel.RINGING) {
-                return false;
-            }
-
-            session.accepter();
             return true;
         }
-    }
-
-    // =========================================================
-    // ❌ REFUSER APPEL
-    // =========================================================
-    public boolean refuserAppel(String username) {
-
-        SessionAppel session = getAppelByUser(username);
-        if (session == null) return false;
-
-        synchronized (session) {
-            if (!session.getRecepteur().getUsername().equals(username)) {
-                return false;
+        //now lets suppose it is rigning
+        public boolean accepterAppel(String reciever) //coté accepteur (username de reciever)
+        {
+            SessionAppel session = getAppelByUser(reciever); //is is calling?
+            if(session == null) return false;
+            //this synchronized keyword tells me not this session is no accessed by other threads
+            synchronized (session)
+            {
+                if(!session.getRecepteur().getUsername().equals(reciever)) return false;//makes sure u dont answer to ur own call
+                if (session.getStatut() != StatutAppel.RINGING) return false;
+                session.accepter();
+                return true;
             }
 
-            if (session.getStatut() != StatutAppel.RINGING) {
-                return false;
-            }
-
-            session.refuser();
+            //TODO FACTORIZE THIS BLOCK IT IS REPETITIVE BETWEEN ACCEPTER AND REFUSER
         }
 
-        nettoyer(session);
-        return true;
-    }
 
-    // =========================================================
-    // 📴 TERMINER APPEL
-    // =========================================================
-    public boolean terminerAppel(String username) {
-
-        SessionAppel session = getAppelByUser(username);
-        if (session == null) return false;
-
-        synchronized (session) {
-            if (session.getStatut() != StatutAppel.IN_CALL) {
-                return false;
+        public boolean refuserAppel(String reciever) //coté accepteur (username de reciever)
+        {
+            SessionAppel session = getAppelByUser(reciever); //is is calling?
+            if(session == null) return false;
+            //this synchronized keyword tells me not this session is no accessed by other threads
+            synchronized (session)
+            {
+                if(!session.getRecepteur().getUsername().equals(reciever)) return false;
+                if (session.getStatut() != StatutAppel.RINGING) return false;
+                session.refuser();
+                return true;
             }
 
-            session.terminer();
+            //TODO FACTORIZE THIS BLOCK IT IS REPETITIVE
         }
 
-        nettoyer(session);
-        return true;
+        public boolean terminerAppel(String reciever)
+        {
+            SessionAppel session = getAppelByUser(reciever);
+            if(session == null) return false;
+            synchronized (session)
+            {
+                if(session.getStatut() != StatutAppel.IN_CALL) return false;
+                session.terminer();
+                return true;
+            }
+        }
     }
-
-    // =========================================================
-    // 🧹 Nettoyage sécurisé
-    // =========================================================
-    private void nettoyer(SessionAppel session) {
-        appels.remove(session.getAppelant().getUsername(), session);
-        appels.remove(session.getRecepteur().getUsername(), session);
-    }
-}

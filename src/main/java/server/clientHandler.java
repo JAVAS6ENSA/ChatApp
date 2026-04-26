@@ -6,21 +6,19 @@ import model.User;
 import model.SessionAppel;
 import databases.DBConnection;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 public class clientHandler implements Runnable {
     private final Socket socket;
-    private final SessionManager sManager;
+    private final SessionManager sManager ;
     private final AppelManager appelManager;
     private PrintWriter going;
     private BufferedReader coming;
     private String username = null;
+    private String email = null;
     private String role = null;
 
     public clientHandler(Socket socket, SessionManager sManager, AppelManager appelManager) {
@@ -29,10 +27,63 @@ public class clientHandler implements Runnable {
         this.appelManager = appelManager;
     }
 
-    // ── LOGIN ─────────────────────────────────────────────────────────────────
+// CALL|TO
+    private void traiterDemandeAppel(String[] parts) throws Exception, IncorrectFormat
+    {
+        if(username == null) {envoyerAuClient("[CLIENT HANDLER] NON AUTHENTIFIE"); throw new Exception();}
+        if(parts.length < 2) {envoyerAuClient("[CLIENT HANDLER] Format Incorrecte"); throw new IncorrectFormat();}
+
+        clientHandler recepteur = SessionManager.getHandler(parts[1]);
+
+        if(recepteur == null)
+        {
+            envoyerAuClient("Utilisateur hors ligne"); throw new Exception();
+        }
+        if(recepteur.username.equals(username))
+        {
+            envoyerAuClient("Impossible!"); throw new Exception();
+        }
+
+        //user at a high level //TODO NEEDS FIX IDK WHT DOES USER1 USER 2 means usually we should use client handler at this point
+        User user1 = new User(0, username,"Online",false);
+        User user2 = new User(1, recepteur.username, "Online",false);
+        boolean check = appelManager.demarrerAppel(user1,user2);
+        if(!check)
+        {
+            envoyerAuClient("[CLIENT HANDLER] l'utilisateur que vous essayer d'appeller est déja en appel en cours!");
+            throw new Exception;
+        }
+        envoyerAuClient("Ringing...");
+        recepteur.envoyerAuClient("Appel entrante " + username );
+    }
+
+    private void traiterAccepterAppel(String[] parts) throws Exception
+    {
+        if(username == null) {envoyerAuClient("[CLIENT HANDLER ERROR] Veuillez s'authentifier"); throw new Exception(); }
+        SessionAppel session = appelManager.getAppelByUser(username);
+        if(session == null) {envoyerAuClient("[CLIENT HANDLER] Aucun appel entrant"); throw new Exception();}
+
+        boolean ok = appelManager.accepterAppel(username);
+
+        if(!ok)
+        {
+            envoyerAuClient("[CLIENT HANDLER] Impossible d'accepter l'appel");
+            throw new Exception();
+        }
+
+        clientHandler starter = SessionManager.getHandler(session.getAppelant().getUsername());
+
+        String currentIp = getIpAddress();
+        //if the starter disconnects right after
+        String callerIp = starter != null? starter.getIpAddress() : "127.0.0.1";
+
+
+    }
+
+
     private void seConnecter(String[] parts) throws IncorrectFormat, Blank, alreadyConnected, invalidCoordinates {
         if (parts.length < 3) {
-            envoyerAuClient("ERREUR: Format incorrecte");
+            envoyerAuClient("ERROR | Format incorrect");
             throw new IncorrectFormat();
         }
 
@@ -44,33 +95,39 @@ public class clientHandler implements Runnable {
             throw new Blank();
         }
 
-        if (sManager.isOnline(username)) {
+        if (SessionManager.isOnline(username)) {
             envoyerAuClient("Connexion impossible: Vous etes deja connectes dans un autre appareil");
             throw new alreadyConnected();
         }
 
         UserDAO userDAO = new UserDAO();
-        User result = userDAO.login(username, password);
+        User result = userDAO.login(username, password); //expecting from maryam to give me an object of type user
 
         if (result == null) {
-            envoyerAuClient("ERROR: invalid username or password");
+            envoyerAuClient("ERROR | Mot de passe ou email incorrecte [ERREUR BASE DE DONNEES]");
             throw new invalidCoordinates();
         }
 
-        this.username = result.getUsername();
+        this.username = result.getUsername(); //else instanciate our client handler
+        this.email = result.getEmail();
         this.role = result.getRole();
-        sManager.registerClientSession(this.username, this);
-        envoyerAuClient("LOGIN_OK|" + result.getId() + "|" + result.getUsername());
+
+        SessionManager.registerClientSession(this.username, this); //register him as online
+        if (this.email != null) {
+            SessionManager.registerClientSession(this.email, this);
+        }
+
+        envoyerAuClient("Connexion réussite :" + result.getUsername());
     }
 
     // ── REGISTER ──────────────────────────────────────────────────────────────
     private void Inscrire(String[] parts) throws IncorrectFormat {
         if (parts.length < 4) {
-            envoyerAuClient("ERREUR: vous devez entrer un email, mot de passe et un username");
+            envoyerAuClient("[CLIENT HANDLER] FORMAT INCORRECTE");
             throw new IncorrectFormat();
         }
 
-        String user     = parts[1].trim();
+        String user     = parts[1].trim(); //supprimer les espaces du debut et de la fin
         String password = parts[2].trim();
         String email    = parts[3].trim();
 
@@ -87,176 +144,98 @@ public class clientHandler implements Runnable {
             return;
         }
 
+
+
+
         String sql = "INSERT INTO comptes (username, email, password) VALUES (?, ?, ?)";
         try (PreparedStatement ps = DBConnection.getInstance().prepareStatement(sql)) {
             ps.setString(1, user);
             ps.setString(2, email);
-            ps.setString(3, password);
-            boolean ok = ps.executeUpdate() > 0;
+           ps.setString(3, password);
+
+
+
+
+
+            // TODO MARYAM : add this to your part not mine its DAO... maybe compteDAO?
+
+
+            boolean ok = compteDAO.register(username,password,email);
             envoyerAuClient(ok ? "Compte cree avec succes" : "nom d'utilisateur ou email deja utilise");
         } catch (SQLException e) {
             envoyerAuClient("nom d'utilisateur ou email deja utilise");
         }
     }
 
-    // ── LOGOUT ────────────────────────────────────────────────────────────────
+
     public void Deconnexion() {
-        if (username != null) {
-            SessionAppel session = appelManager.getAppelByUser(username);
-            if (session != null) terminerAppelInterne(session);
+        if(appelManager.getAppelByUser(username) == null)
+        {
+            terminerAppelInterne(appelManager.getAppelByUser(username));
             SessionManager.removeClientSession(username);
-            envoyerAuClient("LOGOUT|" + username);
-            username = null;
-            role = null;
+            envoyerAuClient("Deconnecté...");
+            try
+            {
+                socket.close();
+            } catch (Exception e) {
+               e.printStackTrace();
+            }
         }
-        try { socket.close(); } catch (Exception e) { e.printStackTrace(); }
     }
 
-    // ── ONLINE LIST ───────────────────────────────────────────────────────────
+
     void avoirListeEnLigne() {
         if (username == null) {
-            envoyerAuClient("ERREUR: utilisateur non authentifie");
+            envoyerAuClient("ERROR | utilisateur non authentifié");
             return;
         }
         String list = String.join(",", SessionManager.getOnlineUsers());
-        envoyerAuClient("ONLINE_LIST|" + list);
+        envoyerAuClient("Currently online: " + list);
     }
 
-    // ── PRIVATE MESSAGE ───────────────────────────────────────────────────────
-    private void envoyerMessagePrive(String[] parts) {
-        if (username == null) {
-            envoyerAuClient("ERREUR: vous devez etre connecte");
-            return;
-        }
-        if (parts.length < 4) {
-            envoyerAuClient("ERREUR: Format: PRIVATE|from|to|content");
-            return;
-        }
-        String toUser  = parts[2];
-        String content = parts[3];
-        clientHandler target = SessionManager.getHandler(toUser);
-        if (target != null) {
-            target.envoyerAuClient("PRIVATE|" + username + "|" + toUser + "|" + content);
-        } else {
-            envoyerAuClient("ERREUR: " + toUser + " n'est pas en ligne");
-        }
-    }
 
-    // ── ROUTER ────────────────────────────────────────────────────────────────
+    private void envoyerMessagePrive(String[] parts) throws IncorrectFormat
+        {
+            if(parts.length < 4) { envoyerAuClient("[CLIENT HANDLER] format incorrecte"); throw new IncorrectFormat();}
+            if(username != null)
+            {
+
+                clientHandler target = SessionManager.getHandler(parts[2]);
+                if(target != null)
+                {target.envoyerAuClient(parts[3]);}
+                else{envoyerAuClient("Utilisateur hors ligne");}
+
+            }
+        }
+
     private void EnvoyerRequete(String data) throws IncorrectFormat, Blank, alreadyConnected, invalidCoordinates {
-        String[] parts = data.split("\\|", -1);
+        String[] parts = data.split("\\|", 4);
         switch (parts[0]) {
             case "LOGIN":      seConnecter(parts);         break;
             case "REGISTER":   Inscrire(parts);            break;
             case "LOGOUT":     Deconnexion();              break;
             case "GET_ONLINE": avoirListeEnLigne();        break;
             case "PRIVATE":    envoyerMessagePrive(parts); break;
-            case "CALL_REQUEST": traiterDemandeAppel(parts);   break;
-            case "CALL_ACCEPT":  traiterAcceptationAppel(parts);break;
-            case "CALL_REFUSE":  traiterRefusAppel(parts);     break;
-            case "CALL_END":     traiterFinAppel(parts);       break;
+            //case "CALL_REQUEST": traiterDemandeAppel(parts);   break;
+           // case "CALL_ACCEPT":  traiterAcceptationAppel(parts);break;
+           // case "CALL_REFUSE":  traiterRefusAppel(parts);     break;
+          //  case "CALL_END":     traiterFinAppel(parts);       break;
             default:
-                envoyerAuClient("ERREUR: Action non reconnue: " + parts[0]);
+                envoyerAuClient("ERROR|Action non reconnue: " + parts[0]);
         }
     }
 
-    // ─── CALL LOGIC ───────────────────────────────────────────────────────────
-    private void traiterDemandeAppel(String[] parts) {
-        if (username == null) { envoyerAuClient("ERREUR: non authentifié"); return; }
-        if (parts.length < 2)  { envoyerAuClient("ERREUR: destinataire manquant"); return; }
 
-        String targetName = parts[1].trim();
 
-        if (targetName.equals(username)) {
-            envoyerAuClient("ERREUR: impossible de s'appeler soi-même");
-            return;
-        }
 
-        clientHandler target = SessionManager.getHandler(targetName);
-        if (target == null) {
-            envoyerAuClient("ERREUR: utilisateur hors ligne ou introuvable");
-            return;
-        }
-
-        User caller   = new User(0, username, "online", false);
-        User receiver = new User(0, targetName, "online", false);
-
-        boolean ok = appelManager.demarrerAppel(caller, receiver);
-        if (!ok) {
-            envoyerAuClient("ERREUR: appel impossible (vous ou l'autre utilisateur est déjà en appel)");
-            return;
-        }
-
-        envoyerAuClient("CALL_RINGING|" + targetName);
-        target.envoyerAuClient("INCOMING_CALL|" + username);
-    }
-
-    private void traiterAcceptationAppel(String[] parts) {
-        if (username == null) { envoyerAuClient("ERREUR: non authentifié"); return; }
-
-        SessionAppel session = appelManager.getAppelByUser(username);
-        if (session == null) { envoyerAuClient("ERREUR: aucun appel en attente"); return; }
-
-        boolean ok = appelManager.accepterAppel(username);
-        if (!ok) { envoyerAuClient("ERREUR: impossible d'accepter l'appel"); return; }
-
-        String appelantName = session.getAppelant().getUsername();
-        clientHandler appelant = SessionManager.getHandler(appelantName);
-
-        envoyerAuClient("CALL_STARTED|" + appelantName);
-        if (appelant != null) appelant.envoyerAuClient("CALL_ACCEPTED|" + username);
-    }
-
-    private void traiterRefusAppel(String[] parts) {
-        if (username == null) { envoyerAuClient("ERREUR: non authentifié"); return; }
-
-        SessionAppel session = appelManager.getAppelByUser(username);
-        if (session == null) { envoyerAuClient("ERREUR: aucun appel en cours"); return; }
-
-        String appelantName = session.getAppelant().getUsername();
-        boolean ok = appelManager.refuserAppel(username);
-        if (!ok) { envoyerAuClient("ERREUR: impossible de refuser l'appel"); return; }
-
-        envoyerAuClient("CALL_REFUSED_SENT|" + appelantName);
-        clientHandler appelant = SessionManager.getHandler(appelantName);
-        if (appelant != null) appelant.envoyerAuClient("CALL_REFUSED|" + username);
-    }
-
-    private void traiterFinAppel(String[] parts) {
-        if (username == null) { envoyerAuClient("ERREUR: non authentifié"); return; }
-
-        SessionAppel session = appelManager.getAppelByUser(username);
-        if (session == null) { envoyerAuClient("ERREUR: aucun appel actif"); return; }
-
-        String autreUsername = session.getAppelant().getUsername().equals(username)
-                ? session.getRecepteur().getUsername()
-                : session.getAppelant().getUsername();
-
-        boolean ok = appelManager.terminerAppel(username);
-        if (!ok) { envoyerAuClient("ERREUR: impossible de terminer l'appel"); return; }
-
-        envoyerAuClient("CALL_ENDED|" + autreUsername);
-        clientHandler autre = SessionManager.getHandler(autreUsername);
-        if (autre != null) autre.envoyerAuClient("CALL_ENDED|" + username);
-    }
-
-    private void terminerAppelInterne(SessionAppel session) {
-        String autreUsername = session.getAppelant().getUsername().equals(username)
-                ? session.getRecepteur().getUsername()
-                : session.getAppelant().getUsername();
-        appelManager.terminerAppel(username);
-        clientHandler autre = SessionManager.getHandler(autreUsername);
-        if (autre != null) autre.envoyerAuClient("CALL_ENDED|" + username);
-    }
-
-    // ── HELPERS ───────────────────────────────────────────────────────────────
     public void envoyerAuClient(String msg) { if (going != null) going.println(msg); }
     public String getUsername()  { return username; }
     public String getRole()      { return role; }
     public boolean estConnu()    { return username != null; }
     public boolean estAdmin()    { return "ADMIN".equals(role); }
+    public String getIpAddress() { return socket.getInetAddress().getHostAddress(); }
 
-    // ── RUN ───────────────────────────────────────────────────────────────────
+
     public void run() {
         try {
             going  = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);

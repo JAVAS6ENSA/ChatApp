@@ -7,11 +7,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SessionManager {
     private static final Map<String, clientHandler> onlineClients = new ConcurrentHashMap<>();
 
-    public static void registerClientSession(String username, clientHandler client)
+    public static void
+    registerClientSession(String username, clientHandler client)
     {
         onlineClients.put(username,client);
-        System.out.println("[Session] " + "-> " + username + "is now online");
-        System.out.println("Currently online: " + onlineClients.size() +" User");
+        System.out.println("[Session] " + "-> " + username + "is now online"); //for server debug
+        System.out.println("Currently online: " + onlineClients.size() +" User"); //for server debug
     }
 
     public static void removeClientSession(String username)
@@ -36,13 +37,14 @@ public class SessionManager {
         return Collections.unmodifiableSet(onlineClients.keySet());
     }
 
-    private static void broadcastOnlineList(){
+    public static void broadcastOnlineList(){
         String list = String.join("-", onlineClients.keySet());
         String message = "Currently Online: " + list;
         for(clientHandler client : onlineClients.values())
         {
-           // client.sendToClient(message);
+           client.envoyerAuClient(message);
         }
     }
+
 
 }

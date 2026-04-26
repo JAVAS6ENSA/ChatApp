@@ -57,6 +57,10 @@ public class Message {
     public String        getType()        { return type; }
     public String        getStatus()      { return status; }
     public LocalDateTime getDateMsg()     { return dateMsg; }
+    public String        getFormattedTime() {
+        if (dateMsg == null) return "";
+        return dateMsg.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+    }
 
     // Setters
     public void setId(int id)              { this.id     = id; }

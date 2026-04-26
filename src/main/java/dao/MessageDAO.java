@@ -76,6 +76,18 @@ public class MessageDAO {
         }
     }
 
+    // Marquer conversation comme lue
+    public void markConversationAsRead(int userId, int targetId) {
+        String sql = "UPDATE messages SET status='read' WHERE receiver_id=? AND sender_id=?";
+        try (PreparedStatement ps = DBConnection.getInstance().prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setInt(2, targetId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Erreur markConversationAsRead: " + e.getMessage());
+        }
+    }
+
     // Messages non lus
     public List<Message> getUnread(int receiverId) {
         List<Message> msgs = new ArrayList<>();

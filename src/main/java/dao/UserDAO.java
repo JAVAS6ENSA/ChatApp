@@ -8,17 +8,32 @@ import java.util.*;
 public class UserDAO {
 
     // Login
-    public User login(String email, String password) {
+    public User login(String identifier, String password) {
         String sql = "SELECT u.*, c.email FROM users u " +
                 "JOIN comptes c ON c.id = u.id " +
-                "WHERE c.email = ? AND c.password = ? AND u.is_blocked = 0";
+                "WHERE (c.email = ? OR u.username = ?) AND c.password = ? AND u.is_blocked = 0";
         try (PreparedStatement ps = DBConnection.getInstance().prepareStatement(sql)) {
-            ps.setString(1, email);
-            ps.setString(2, password);
+            ps.setString(1, identifier);
+            ps.setString(2, identifier);
+            ps.setString(3, password);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return mapUser(rs);
         } catch (SQLException e) {
             System.err.println("Erreur login: " + e.getMessage());
+        }
+        return null;
+    }
+
+    public User getByUsername(String username) {
+        String sql = "SELECT u.*, c.email FROM users u " +
+                "JOIN comptes c ON c.id = u.id " +
+                "WHERE u.username = ?";
+        try (PreparedStatement ps = DBConnection.getInstance().prepareStatement(sql)) {
+            ps.setString(1, username);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return mapUser(rs);
+        } catch (SQLException e) {
+            System.err.println("Erreur getByUsername: " + e.getMessage());
         }
         return null;
     }
