@@ -1,38 +1,45 @@
-C:\Users\pc\Documents\Javaproject\src\main\java\dao\TestDAO.java
-C:\Users\pc\Documents\Javaproject\src\main\java\server\clientHandler.java
-C:\Users\pc\Documents\Javaproject\src\main\java\server\session.java
-C:\Users\pc\Documents\Javaproject\src\main\java\Views\ChatApp.java
-C:\Users\pc\Documents\Javaproject\src\main\java\server\Exceptions\banException.java
-C:\Users\pc\Documents\Javaproject\src\main\java\model\Call.java
-C:\Users\pc\Documents\Javaproject\src\main\java\model\ChatMessage.java
-C:\Users\pc\Documents\Javaproject\src\main\java\server\serveur.java
-C:\Users\pc\Documents\Javaproject\src\main\java\server\Exceptions\Blank.java
-C:\Users\pc\Documents\Javaproject\src\main\java\server\Exceptions\alreadyConnected.java
-C:\Users\pc\Documents\Javaproject\src\main\java\dao\UserDAO.java
-C:\Users\pc\Documents\Javaproject\src\main\java\server\SessionManager.java
-C:\Users\pc\Documents\Javaproject\src\main\java\dao\MessageDAO.java
-C:\Users\pc\Documents\Javaproject\src\main\java\org\example\Main.java
-C:\Users\pc\Documents\Javaproject\src\main\java\services\JSONMessageStore.java
-C:\Users\pc\Documents\Javaproject\src\main\java\model\StatutAppel.java
-C:\Users\pc\Documents\Javaproject\src\main\java\dao\GroupDAO.java
-C:\Users\pc\Documents\Javaproject\src\main\java\server\Exceptions\invalidCoordinates.java
-C:\Users\pc\Documents\Javaproject\src\main\java\streaming\CallManager.java
-C:\Users\pc\Documents\Javaproject\src\main\java\Views\ChatView.java
-C:\Users\pc\Documents\Javaproject\src\main\java\Views\CallStage.java
-C:\Users\pc\Documents\Javaproject\src\main\java\Views\TestCallUi.java
-C:\Users\pc\Documents\Javaproject\src\main\java\model\SessionAppel.java
-C:\Users\pc\Documents\Javaproject\src\main\java\model\User.java
-C:\Users\pc\Documents\Javaproject\src\main\java\server\AppelManager.java
-C:\Users\pc\Documents\Javaproject\src\main\java\Messaging\Messagesender.java
-C:\Users\pc\Documents\Javaproject\src\main\java\server\clientAPP.java
-C:\Users\pc\Documents\Javaproject\src\main\java\Views\PrivateChatController.java
-C:\Users\pc\Documents\Javaproject\src\main\java\model\Group.java
-C:\Users\pc\Documents\Javaproject\src\main\java\model\Message.java
-C:\Users\pc\Documents\Javaproject\src\main\java\server\Exceptions\shortt.java
-C:\Users\pc\Documents\Javaproject\src\main\java\databases\DBConnection.java
-C:\Users\pc\Documents\Javaproject\src\main\java\Views\MainView.java
-C:\Users\pc\Documents\Javaproject\src\main\java\server\Exceptions\IncorrectFormat.java
-C:\Users\pc\Documents\Javaproject\src\main\java\dao\CallDAO.java
-C:\Users\pc\Documents\Javaproject\src\main\java\Messaging\MessageReceiver.java
-C:\Users\pc\Documents\Javaproject\src\main\java\Views\CallView.java
-C:\Users\pc\Documents\Javaproject\src\main\java\Views\Launcher.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\Views\loginController.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\Views\PrivateChatController.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\dao\UserDAO.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\server\serveur.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\model\Call.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\dao\compteDAO.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\model\ChatMessage.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\dao\TestDAO.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\model\Message.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\model\SessionAppel.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\server\Exceptions\IncorrectFormat.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\Views\SceneManager.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\server\Exceptions\alreadyConnected.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\Messaging\MessageReceiver.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\org\example\Main.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\server\Exceptions\Blank.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\server\Exceptions\shortt.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\dao\CallDAO.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\databases\DBConnection.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\Messaging\Messagesender.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\server\clientAPP.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\dao\GroupDAO.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\Views\ChatView.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\server\SessionManager.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\model\Group.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\server\AppelManager.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\model\User.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\Views\ChatApp.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\streaming\CallManager.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\Views\CallStage.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\Views\registerController.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\server\Exceptions\AlreadyOngoingCall.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\Views\TestCallUi.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\server\clientHandler.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\model\StatutAppel.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\dao\MessageDAO.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\Views\MainView.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\Views\Launcher.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\Views\CallView.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\server\Exceptions\banException.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\server\session.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\services\JSONMessageStore.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\server\Exceptions\invalidCoordinates.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\server\Exceptions\UnexpectedBehavior.java
+C:\Users\LENOVO\Desktop\S 6\JAVA\ChatApp\ChatApp\src\main\java\model\Contact.java

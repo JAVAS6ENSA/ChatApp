@@ -64,8 +64,9 @@ public class loginController {
             }
             else if(response.startsWith("Connexion réussite"))
             {
-                session.getInstance().login(user,"USERINSTANCE");
-                SceneManager.switchTo("main.fxml");
+                String actualUsername = response.split(":", 2)[1].trim();
+                session.getInstance().login(actualUsername, "USERINSTANCE");
+                SceneManager.switchTo(new MainView(actualUsername, client));
             }
             else
             {

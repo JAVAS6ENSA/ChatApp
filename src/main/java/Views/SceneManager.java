@@ -15,15 +15,20 @@ public class SceneManager {
     {
         try{
         Parent root = FXMLLoader.load(SceneManager.class.getResource("/" + fxml));
-        Scene scene = new Scene(root);
-        primaryStage.setScene(scene);
-        primaryStage.show();
+        switchTo(root);
         }
         catch(Exception e)
         {
             e.printStackTrace();
         }
 
+    }
+
+    public static void switchTo(Parent root)
+    {
+        Scene scene = new Scene(root);
+        primaryStage.setScene(scene);
+        primaryStage.show();
     }
 
 }

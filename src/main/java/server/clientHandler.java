@@ -56,7 +56,7 @@ public class clientHandler implements Runnable {
             throw new Exception();
         }
         envoyerAuClient("Ringing...");
-        recepteur.envoyerAuClient("Appel entrante " + username );
+        recepteur.envoyerAuClient("CALL_REQUEST|" + username);
     }
 
     private void traiterAcceptationAppel(String[] parts) throws Exception, UnexpectedBehavior
@@ -76,12 +76,11 @@ public class clientHandler implements Runnable {
         clientHandler starter = SessionManager.getHandler(session.getAppelant().getUsername());
 
         String currentIp = getIpAddress();
-        //if the starter disconnects right after
-        String callerIp = starter != null? starter.getIpAddress() : "127.0.0.1"; //this would never happen as if he diconnected at between accepter appel and getAppelent.getName I am leaving the ip adress thing for debut
-        //TODO delete the ip adress later (unsafe)
+        String callerIp = starter != null? starter.getIpAddress() : "127.0.0.1";
         if(starter == null)  { envoyerAuClient(" [UNEXPECTED BEHAVIOR] Debut Appel avec vous meme (loopback)  " + username+ "sur " +callerIp); throw new UnexpectedBehavior(); }
         envoyerAuClient("Debut Appel avec " + starter.getUsername() + "Running at " +callerIp);
-
+        // Notifier l'appelant que l'appel a été accepté
+        starter.envoyerAuClient("CALL_ACCEPTED|" + username);
     }
 
     //TODO traiter refus- traiter terminer
@@ -104,7 +103,7 @@ public class clientHandler implements Runnable {
 
         clientHandler starter = SessionManager.getHandler(session.getAppelant().getUsername());
 
-        if(starter != null) starter.envoyerAuClient("Aucune reponse");
+        if(starter != null) starter.envoyerAuClient("CALL_REFUSED|" + username);
     }
 
 
@@ -122,8 +121,8 @@ public class clientHandler implements Runnable {
         clientHandler other = SessionManager.getHandler(autre);
         boolean ok = appelManager.terminerAppel(username);
         if(!ok) envoyerAuClient("impossible de terminer");
-        if(other != null) other.envoyerAuClient("Appel terminé");
-        envoyerAuClient("Appel terminé");
+        if(other != null) other.envoyerAuClient("CALL_ENDED|" + username);
+        envoyerAuClient("CALL_ENDED|" + autre);
 
     }
 
@@ -143,8 +142,11 @@ public class clientHandler implements Runnable {
         }
 
         if (SessionManager.isOnline(username)) {
-            envoyerAuClient("Connexion impossible: Vous etes deja connectes dans un autre appareil");
-            throw new alreadyConnected();
+            clientHandler oldHandler = SessionManager.getHandler(username);
+            if (oldHandler != null) {
+                oldHandler.envoyerAuClient("INFO | Connexion depuis un autre appareil. Déconnexion...");
+                oldHandler.Deconnexion();
+            }
         }
 
         UserDAO userDAO = new UserDAO();
@@ -194,24 +196,8 @@ public class clientHandler implements Runnable {
 
 
 
-        String sql = "INSERT INTO comptes (username, email, password) VALUES (?, ?, ?)";
-        try (PreparedStatement ps = DBConnection.getInstance().prepareStatement(sql)) {
-            ps.setString(1, user);
-            ps.setString(2, email);
-           ps.setString(3, password);
-
-
-
-
-
-            // TODO MARYAM : add this to your part not mine its DAO... maybe compteDAO?
-
-
-            boolean ok = compteDAO.register(username,password,email);
-            envoyerAuClient(ok ? "Compte cree avec succes" : "nom d'utilisateur ou email deja utilise");
-        } catch (SQLException e) {
-            envoyerAuClient("nom d'utilisateur ou email deja utilise");
-        }
+        boolean ok = dao.compteDAO.register(user, password, email);
+        envoyerAuClient(ok ? "Compte cree avec succes" : "nom d'utilisateur ou email deja utilise");
     }
 
 //terminer appel interne to only tell the current user but not the other user
@@ -261,17 +247,24 @@ public class clientHandler implements Runnable {
             if(username != null)
             {
 
-                clientHandler target = SessionManager.getHandler(parts[2]);
+                String targetName = parts[2].trim();
+                clientHandler target = SessionManager.getHandler(targetName);
                 if(target != null)
-                {target.envoyerAuClient(parts[3]);}
-                else{envoyerAuClient("Utilisateur hors ligne");}
+                {
+                    System.out.println("[SERVER DEBUG] Routing PRIVATE from " + username + " to " + targetName);
+                    target.envoyerAuClient("PRIVATE|" + username + "|" + targetName + "|" + parts[3]);
+                }
+                else{
+                    System.err.println("[SERVER DEBUG] Target " + targetName + " not found in SessionManager");
+                    envoyerAuClient("Utilisateur hors ligne");
+                }
 
             }
         }
 
     private void EnvoyerRequete(String data) throws IncorrectFormat, Blank, alreadyConnected, invalidCoordinates,Exception {
         String[] parts = data.split("\\|", 4);
-        switch (parts[0]) {
+        switch (parts[0].trim()) {
             case "LOGIN":      seConnecter(parts);         break;
             case "REGISTER":   Inscrire(parts);            break;
             case "LOGOUT":     Deconnexion();              break;

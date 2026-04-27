@@ -65,12 +65,7 @@
             <version>2.10.1</version>
         </dependency>
 
-        <!-- JavaCV Platform -->
-        <dependency>
-            <groupId>org.bytedeco</groupId>
-            <artifactId>javacv-platform</artifactId>
-            <version>1.5.9</version>
-        </dependency>
+
 
     </dependencies>
 

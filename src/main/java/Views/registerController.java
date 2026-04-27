@@ -7,6 +7,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import server.clientAPP;
+import server.session;
 
 public class registerController {
     @FXML
@@ -59,7 +60,10 @@ public class registerController {
 
     }
 
+    private String lastUsername;
+
     public void doRegister(String user, String pass, String email) {
+        this.lastUsername = user;
         String response = "";
         try {
             if (!client.isConnected()) client.connect();
@@ -80,8 +84,9 @@ public class registerController {
 
         if (response == null) {
             errorLabel.setText("Connexion perdue.");
-        } else if (response.startsWith("Compte cree avec succes")) {
-            SceneManager.switchTo("main.fxml");
+        } else if (response.contains("Compte cree avec succes")) {
+            session.getInstance().login(lastUsername, "USERINSTANCE");
+            SceneManager.switchTo(new MainView(lastUsername, client));
         } else {
             errorLabel.setText(response);
         }

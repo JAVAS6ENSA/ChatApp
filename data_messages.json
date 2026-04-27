@@ -1,0 +1,128 @@
+{
+  "messages": {
+    "ayadahbi_youssef_x": [
+      {
+        "sender": "ayadahbi",
+        "receiver": "youssef_x",
+        "type": "TEXT",
+        "content": "hillo",
+        "time": "15:35",
+        "status": "✔",
+        "timestamp": 1777296909024,
+        "isEdited": false
+      },
+      {
+        "sender": "ayadahbi",
+        "receiver": "youssef_x",
+        "type": "AUDIO",
+        "content": "C:\\Users\\LENOVO\\Desktop\\S 6\\JAVA\\ChatApp\\ChatApp\\record_1777296945125.wav",
+        "time": "15:35",
+        "status": "✔",
+        "timestamp": 1777296958391,
+        "isEdited": false
+      },
+      {
+        "sender": "ayadahbi",
+        "receiver": "youssef_x",
+        "type": "TEXT",
+        "content": "hiii",
+        "time": "16:15",
+        "status": "✔",
+        "timestamp": 1777299326764,
+        "isEdited": false
+      }
+    ],
+    "adam_dev_salma_s": [
+      {
+        "sender": "adam_dev",
+        "receiver": "salma_s",
+        "type": "TEXT",
+        "content": "hillo",
+        "time": "16:04",
+        "status": "✔",
+        "timestamp": 1777298656349,
+        "isEdited": false
+      }
+    ],
+    "ayadahbi_salma_s": [
+      {
+        "sender": "ayadahbi",
+        "receiver": "salma_s",
+        "type": "TEXT",
+        "content": "hillo",
+        "time": "16:24",
+        "status": "✔",
+        "timestamp": 1777299874056,
+        "isEdited": false
+      },
+      {
+        "sender": "ayadahbi",
+        "receiver": "salma_s",
+        "type": "TEXT",
+        "content": "hillo",
+        "time": "16:51",
+        "status": "✔",
+        "timestamp": 1777301505884,
+        "isEdited": false
+      },
+      {
+        "sender": "salma_s",
+        "receiver": "ayadahbi",
+        "type": "TEXT",
+        "content": "hi",
+        "time": "17:12",
+        "status": "✔",
+        "timestamp": 1777302770522,
+        "isEdited": false
+      },
+      {
+        "sender": "salma_s",
+        "receiver": "ayadahbi",
+        "type": "TEXT",
+        "content": "sqlqm ana aya",
+        "time": "17:13",
+        "status": "✔",
+        "timestamp": 1777302814702,
+        "isEdited": false
+      }
+    ],
+    "omaromar_youssef_x": [
+      {
+        "sender": "omaromar",
+        "receiver": "youssef_x",
+        "type": "TEXT",
+        "content": "hillo",
+        "time": "17:01",
+        "status": "✔",
+        "timestamp": 1777302101271,
+        "isEdited": false
+      }
+    ],
+    "omaromar_salma_s": [
+      {
+        "sender": "omaromar",
+        "receiver": "salma_s",
+        "type": "TEXT",
+        "content": "hello",
+        "time": "17:04",
+        "status": "✔",
+        "timestamp": 1777302265458,
+        "isEdited": false
+      }
+    ],
+    "ayadahbi_omaromar": [
+      {
+        "sender": "omaromar",
+        "receiver": "ayadahbi",
+        "type": "TEXT",
+        "content": "hi aya",
+        "time": "17:43",
+        "status": "✔",
+        "timestamp": 1777304587728,
+        "isEdited": false
+      }
+    ]
+  },
+  "blockedUsers": [],
+  "hiddenConversations": []
+}

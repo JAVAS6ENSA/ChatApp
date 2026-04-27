@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="Views.MainController"
+            prefWidth="1200" prefHeight="750" fx:id="root">
+
+    <!-- SIDEBAR -->
+    <left>
+        <VBox fx:id="sidebar" prefWidth="350"
+              style="-fx-background-color: #0f1117; -fx-border-color: #252836; -fx-border-width: 0 1 0 0;">
+
+            <!-- Header -->
+            <HBox spacing="15" alignment="CENTER_LEFT"
+                  style="-fx-padding: 24;">
+                <StackPane>
+                    <Circle fx:id="avatarCircle" radius="24" fill="#4f8ef7"/>
+                    <Label fx:id="avatarInitialLabel" textFill="white"
+                           style="-fx-font-size: 18; -fx-font-weight: bold;"/>
+                </StackPane>
+                <VBox spacing="3">
+                    <Label fx:id="myNameLabel" textFill="#e8eaf0"
+                           style="-fx-font-size: 16; -fx-font-weight: bold;"/>
+                    <Label text="● En ligne" textFill="#22c55e" style="-fx-font-size: 13;"/>
+                </VBox>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="addContactBtn" text="+" onAction="#handleAddContact"
+                        style="-fx-background-color: transparent; -fx-text-fill: #4f8ef7; -fx-font-size: 24; -fx-cursor: hand;"/>
+            </HBox>
+
+            <!-- Search -->
+            <HBox style="-fx-padding: 0 24 20 24;">
+                <TextField fx:id="searchField" promptText="🔍 Rechercher un contact..."
+                           HBox.hgrow="ALWAYS"
+                           style="-fx-background-color: #1e2130; -fx-text-fill: #e8eaf0; -fx-prompt-text-fill: #6b7280; -fx-background-radius: 20; -fx-padding: 10 16; -fx-font-size: 13;"/>
+            </HBox>
+
+            <!-- Contacts List -->
+            <ScrollPane fx:id="contactsScroll" fitToWidth="true" VBox.vgrow="ALWAYS"
+                        style="-fx-background: #0f1117; -fx-background-color: transparent;">
+                <VBox fx:id="contactsListUI"/>
+            </ScrollPane>
+        </VBox>
+    </left>
+
+    <!-- CHAT AREA -->
+    <center>
+        <BorderPane fx:id="chatPane" style="-fx-background-color: #13151f;">
+
+            <!-- Chat Header (hidden by default) -->
+            <top>
+                <HBox fx:id="chatHeader" spacing="15" alignment="CENTER_LEFT" managed="false" visible="false"
+                      style="-fx-padding: 18 30; -fx-background-color: #13151f; -fx-border-color: #252836; -fx-border-width: 0 0 1 0;">
+                    <Label fx:id="chatNameLabel" textFill="#e8eaf0"
+                           style="-fx-font-size: 17; -fx-font-weight: bold;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="callBtn" text="📞" onAction="#handleCall"
+                            style="-fx-background-color: transparent; -fx-text-fill: #6b7280; -fx-font-size: 20;"/>
+                    <Button fx:id="videoBtn" text="📹" onAction="#handleVideoCall"
+                            style="-fx-background-color: transparent; -fx-text-fill: #6b7280; -fx-font-size: 20;"/>
+                </HBox>
+            </top>
+
+            <!-- Messages Area -->
+            <center>
+                <StackPane fx:id="centerStack">
+                    <Label fx:id="emptyLabel" text="Sélectionnez une conversation pour commencer"
+                           textFill="#6b7280" style="-fx-font-size: 16;"/>
+                    <ScrollPane fx:id="messagesScroll" fitToWidth="true" visible="false" managed="false"
+                                style="-fx-background: #13151f; -fx-background-color: transparent;">
+                        <VBox fx:id="messagesBox" spacing="20" style="-fx-padding: 30 40;"/>
+                    </ScrollPane>
+                </StackPane>
+            </center>
+
+            <!-- Input Footer (hidden by default) -->
+            <bottom>
+                <HBox fx:id="inputFooter" spacing="15" alignment="CENTER" managed="false" visible="false"
+                      style="-fx-padding: 20 40; -fx-background-color: #13151f;">
+                    <Button fx:id="micBtn" text="🎤" onAction="#handleMic"
+                            style="-fx-background-color: transparent; -fx-text-fill: #6b7280; -fx-font-size: 20;"/>
+                    <TextField fx:id="inputField" promptText="Écrire un message..." HBox.hgrow="ALWAYS"
+                               style="-fx-background-color: #1e2130; -fx-text-fill: #e8eaf0; -fx-background-radius: 25; -fx-padding: 12 20;"/>
+                    <Button fx:id="sendBtn" text="➤" onAction="#handleSend"
+                            style="-fx-background-color: #4f8ef7; -fx-text-fill: white; -fx-background-radius: 25; -fx-min-width: 48; -fx-min-height: 48;"/>
+                </HBox>
+            </bottom>
+        </BorderPane>
+    </center>
+</BorderPane>
