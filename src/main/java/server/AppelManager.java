@@ -67,6 +67,7 @@ public class AppelManager
                 if(!session.getRecepteur().getUsername().equals(reciever)) return false;
                 if (session.getStatut() != StatutAppel.RINGING) return false;
                 session.refuser();
+                nettoyerSession(session);
                 return true;
             }
 
@@ -81,7 +82,15 @@ public class AppelManager
             {
                 if(session.getStatut() != StatutAppel.IN_CALL) return false;
                 session.terminer();
+                nettoyerSession(session);
                 return true;
             }
+        }
+
+        public void nettoyerSession(SessionAppel session)
+        {
+            if(session == null) return;
+            appels.remove(session.getAppelant().getUsername());
+            appels.remove(session.getRecepteur().getUsername());
         }
     }

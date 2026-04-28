@@ -62,8 +62,17 @@ public class clientHandler implements Runnable {
     private void traiterAcceptationAppel(String[] parts) throws Exception, UnexpectedBehavior
     {
         if(username == null) {envoyerAuClient("[CLIENT HANDLER ERROR] Veuillez s'authentifier"); throw new Exception(); }
+        if(parts.length < 2) {envoyerAuClient("[CLIENT HANDLER] Format attendu: CALL_ACCEPT|port"); throw new IncorrectFormat(); }
         SessionAppel session = appelManager.getAppelByUser(username);
         if(session == null) {envoyerAuClient("[CLIENT HANDLER] Aucun appel entrant"); throw new Exception();}
+
+        int portUdp;
+        try {
+            portUdp = Integer.parseInt(parts[1].trim());
+        } catch (NumberFormatException e) {
+            envoyerAuClient("[CLIENT HANDLER] Port UDP invalide");
+            throw new IncorrectFormat();
+        }
 
         boolean ok = appelManager.accepterAppel(username);
 
@@ -75,12 +84,50 @@ public class clientHandler implements Runnable {
 
         clientHandler starter = SessionManager.getHandler(session.getAppelant().getUsername());
 
-        String currentIp = getIpAddress();
+        String recepteurIp = getIpAddress();
         String callerIp = starter != null? starter.getIpAddress() : "127.0.0.1";
         if(starter == null)  { envoyerAuClient(" [UNEXPECTED BEHAVIOR] Debut Appel avec vous meme (loopback)  " + username+ "sur " +callerIp); throw new UnexpectedBehavior(); }
-        envoyerAuClient("Debut Appel avec " + starter.getUsername() + "Running at " +callerIp);
-        // Notifier l'appelant que l'appel a été accepté
-        starter.envoyerAuClient("CALL_ACCEPTED|" + username);
+        session.setInfosAudioRecepteur(recepteurIp, portUdp);
+        envoyerAuClient("WAIT_CALLER_READY");
+        // Notifier l'appelant que l'appel a été accepté avec ip/port UDP du recepteur
+        starter.envoyerAuClient("CALL_ACCEPTED|" + username + "|" + recepteurIp + "|" + portUdp);
+    }
+
+    private void traiterCallerReady(String[] parts) throws Exception
+    {
+        if(username == null) {envoyerAuClient("[CLIENT HANDLER ERROR] Veuillez s'authentifier"); throw new Exception(); }
+        if(parts.length < 2) {envoyerAuClient("[CLIENT HANDLER] Format attendu: CALL_READY|port"); throw new IncorrectFormat(); }
+        SessionAppel session = appelManager.getAppelByUser(username);
+        if(session == null) {envoyerAuClient("[CLIENT HANDLER] Aucun appel en attente"); throw new Exception();}
+        if(!session.getAppelant().getUsername().equals(username)) {
+            envoyerAuClient("[CLIENT HANDLER] Seul l'appelant peut envoyer CALL_READY");
+            throw new Exception();
+        }
+
+        int portUdp;
+        try {
+            portUdp = Integer.parseInt(parts[1].trim());
+        } catch (NumberFormatException e) {
+            envoyerAuClient("[CLIENT HANDLER] Port UDP invalide");
+            throw new IncorrectFormat();
+        }
+
+        clientHandler recepteur = SessionManager.getHandler(session.getRecepteur().getUsername());
+        if(recepteur == null) {
+            envoyerAuClient("[CLIENT HANDLER] Recepteur hors ligne");
+            throw new Exception();
+        }
+        if(session.getIpRecepteur() == null || session.getPortRecepteur() <= 0) {
+            envoyerAuClient("[CLIENT HANDLER] Le recepteur n'a pas encore fourni son port UDP");
+            throw new Exception();
+        }
+
+        String ipAppelant = getIpAddress();
+        session.setInfosAudioAppelant(ipAppelant, portUdp);
+
+        // Signal final de démarrage audio vers les deux clients
+        envoyerAuClient("START_AUDIO|" + session.getIpRecepteur() + "|" + session.getPortRecepteur());
+        recepteur.envoyerAuClient("START_AUDIO|" + session.getIpAppelant() + "|" + session.getPortAppelant());
     }
 
     //TODO traiter refus- traiter terminer
@@ -272,6 +319,7 @@ public class clientHandler implements Runnable {
             case "PRIVATE":    envoyerMessagePrive(parts); break;
             case "CALL_REQUEST": traiterDemandeAppel(parts);   break;
            case "CALL_ACCEPT":  traiterAcceptationAppel(parts);break;
+            case "CALL_READY":   traiterCallerReady(parts);     break;
             case "CALL_REFUSE":  traiterRefusAppel(parts);     break;
            case "CALL_END":     traiterFinAppel(parts);       break;
             default:
