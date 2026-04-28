@@ -121,6 +121,100 @@
         "timestamp": 1777304587728,
         "isEdited": false
       }
+    ],
+    "adam_dev_omar_admin": [
+      {
+        "sender": "adam_dev",
+        "receiver": "omar_admin",
+        "type": "TEXT",
+        "content": "hello",
+        "time": "03:43",
+        "status": "✔",
+        "timestamp": 1777340602323,
+        "isEdited": false
+      },
+      {
+        "sender": "adam_dev",
+        "receiver": "omar_admin",
+        "type": "TEXT",
+        "content": "C:\\Users\\LENOVO\\Desktop\\S 6\\JAVA\\ChatApp\\ChatApp\\rec_1777340610013.wav",
+        "time": "03:43",
+        "status": "✔",
+        "timestamp": 1777340619094,
+        "isEdited": false
+      },
+      {
+        "sender": "omar_admin",
+        "receiver": "adam_dev",
+        "type": "AUDIO_MSG",
+        "content": "chat_files\\sent\\1777342879093_rec_1777342873814.wav|rec_1777342873814.wav|457572",
+        "time": "04:21",
+        "status": "✔",
+        "timestamp": 1777342879131,
+        "isEdited": false
+      }
+    ],
+    "ayadahbi_omar_admin": [
+      {
+        "sender": "ayadahbi",
+        "receiver": "omar_admin",
+        "type": "TEXT",
+        "content": "hi",
+        "time": "04:04",
+        "status": "✔",
+        "timestamp": 1777341869095,
+        "isEdited": false
+      },
+      {
+        "sender": "ayadahbi",
+        "receiver": "omar_admin",
+        "type": "TEXT",
+        "content": "C:\\Users\\LENOVO\\Desktop\\S 6\\JAVA\\ChatApp\\ChatApp\\rec_1777341878000.wav",
+        "time": "04:04",
+        "status": "✔",
+        "timestamp": 1777341881796,
+        "isEdited": false
+      },
+      {
+        "sender": "ayadahbi",
+        "receiver": "omar_admin",
+        "type": "AUDIO_MSG",
+        "content": "received_files\\ayadahbi\\1777342777682_rec_1777342773951.wav|rec_1777342773951.wav|311488",
+        "time": "04:19",
+        "status": "✔",
+        "timestamp": 1777342777727,
+        "isEdited": false
+      },
+      {
+        "sender": "ayadahbi",
+        "receiver": "omar_admin",
+        "type": "IMAGE",
+        "content": "received_files\\ayadahbi\\1777342801898_Capture_d__cran_2026-04-28_040455.png|Capture d\u0027écran 2026-04-28 040455.png|38048",
+        "time": "04:20",
+        "status": "✔",
+        "timestamp": 1777342801900,
+        "isEdited": false
+      },
+      {
+        "sender": "ayadahbi",
+        "receiver": "omar_admin",
+        "type": "TEXT",
+        "content": "aya",
+        "time": "13:37",
+        "status": "✔",
+        "timestamp": 1777376259102,
+        "isEdited": false
+      },
+      {
+        "sender": "omar_admin",
+        "receiver": "ayadahbi",
+        "type": "IMAGE",
+        "content": "received_files\\omar_admin\\1777376569379_Capture_d__cran_2026-04-10_123025.png|Capture d’écran 2026-04-10 123025.png|34364",
+        "time": "13:42",
+        "status": "✔",
+        "timestamp": 1777376569391,
+        "isEdited": false
+      }
     ]
   },
   "blockedUsers": [],

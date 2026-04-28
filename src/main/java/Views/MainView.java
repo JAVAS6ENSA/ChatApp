@@ -15,6 +15,8 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
@@ -28,6 +30,12 @@ import javafx.util.Duration;
 
 import javax.sound.sampled.*;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.Base64;
 import java.util.ArrayList;
 import java.util.List;
 import java.time.LocalDateTime;
@@ -64,6 +72,7 @@ public class MainView extends BorderPane {
     private File pendingAudioFile;
     private Timeline audioTimer;
     private int recordSeconds = 0;
+    private static final String MEDIA_PREFIX = "MEDIA_MSG";
 
     private Contact activeContact = null;
     private List<Contact> mockContacts;
@@ -72,6 +81,9 @@ public class MainView extends BorderPane {
     private JSONMessageStore store;
     private server.clientAPP client;
     private CallStage activeCallStage = null;
+    private streaming.CallManager currentCallManager = null;
+    private final int localAudioPort = 5000;
+    private boolean isCurrentUserCaller = false;
 
     private class Contact {
         int id; String username; boolean isOnline; boolean isBlocked; boolean isGroup; String dateCreated;
@@ -136,9 +148,7 @@ public class MainView extends BorderPane {
         if (type.equals("PRIVATE")) {
             String sender = parts[1].trim();
             String content = parts[3];
-            
-            ChatMessage msg = new ChatMessage(sender, myUsername, "TEXT", content, 
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm")), "✔", System.currentTimeMillis());
+            ChatMessage msg = parseIncomingPrivateMessage(sender, content);
             
             store.addMessage(msg, false, sender);
             
@@ -150,7 +160,7 @@ public class MainView extends BorderPane {
                     if (c.username.equalsIgnoreCase(sender)) {
                         c.unreadCount++;
                         c.lastMessageTime = msg.getTimestamp();
-                        c.lastMessagePreview = content;
+                        c.lastMessagePreview = buildPreviewText(msg);
                         found = true;
                         break;
                     }
@@ -159,24 +169,38 @@ public class MainView extends BorderPane {
                     Contact newC = new Contact(mockContacts.size() + 1, sender, true, false, false, "Aujourd'hui");
                     newC.unreadCount = 1;
                     newC.lastMessageTime = msg.getTimestamp();
-                    newC.lastMessagePreview = content;
+                    newC.lastMessagePreview = buildPreviewText(msg);
                     mockContacts.add(newC);
                 }
                 sortAndRenderSidebar();
             }
         } else if (type.equals("CALL_REQUEST")) {
             String caller = parts[1];
+            isCurrentUserCaller = false;
             model.StatutAppel statut = model.StatutAppel.RINGING;
             CallStage callStage = new CallStage(caller, statut);
             activeCallStage = callStage;
-            callStage.getView().setOnAccept(() -> client.send("CALL_ACCEPT|" + caller));
+            callStage.getView().setOnAccept(() -> client.send("CALL_ACCEPT|" + localAudioPort));
             callStage.getView().setOnDecline(() -> client.send("CALL_REFUSE|" + caller));
             callStage.getView().setOnHangUp(() -> client.send("CALL_END|" + caller));
             callStage.show();
         } else if (type.equals("CALL_ACCEPTED")) {
-            // L'autre personne a accepté l'appel
+            // L'autre personne a accepté l'appel, l'appelant envoie son port UDP
             if (activeCallStage != null) {
                 activeCallStage.getView().updateState(model.StatutAppel.IN_CALL);
+            }
+            client.send("CALL_READY|" + localAudioPort);
+        } else if (type.equals("WAIT_CALLER_READY")) {
+            if (activeCallStage != null) {
+                activeCallStage.getView().updateState(model.StatutAppel.IN_CALL);
+            }
+        } else if (type.equals("START_AUDIO")) {
+            if (parts.length >= 3) {
+                if (currentCallManager != null) {
+                    currentCallManager.stopCall();
+                }
+                currentCallManager = new streaming.CallManager(parts[1], isCurrentUserCaller);
+                currentCallManager.startCall();
             }
         } else if (type.equals("CALL_REFUSED")) {
             // L'autre personne a refusé l'appel
@@ -184,11 +208,19 @@ public class MainView extends BorderPane {
                 activeCallStage.getView().updateState(model.StatutAppel.REFUSED);
                 activeCallStage = null;
             }
+            if (currentCallManager != null) {
+                currentCallManager.stopCall();
+                currentCallManager = null;
+            }
         } else if (type.equals("CALL_ENDED")) {
             // L'appel est terminé
             if (activeCallStage != null) {
                 activeCallStage.getView().updateState(model.StatutAppel.ENDED);
                 activeCallStage = null;
+            }
+            if (currentCallManager != null) {
+                currentCallManager.stopCall();
+                currentCallManager = null;
             }
         }
     }
@@ -201,9 +233,7 @@ public class MainView extends BorderPane {
                 ChatMessage lastMsg = hist.get(hist.size() - 1);
                 c.lastMessageTime = lastMsg.getTimestamp();
                 String prefix = lastMsg.getSender().equals(myUsername) ? "Vous: " : "";
-                String preview = lastMsg.getContent();
-                if (lastMsg.getType().equals("AUDIO")) preview = "🎵 Audio";
-                else if (lastMsg.getType().equals("IMAGE")) preview = "🖼️ Image";
+                String preview = buildPreviewText(lastMsg);
                 c.lastMessagePreview = prefix + preview;
             }
         }
@@ -372,8 +402,13 @@ public class MainView extends BorderPane {
             try {
                 CallStage callStage = new CallStage(targetUsername, model.StatutAppel.LIBRE);
                 activeCallStage = callStage;
+                isCurrentUserCaller = true;
                 callStage.getView().setOnHangUp(() -> {
                     client.send("CALL_END|" + targetUsername);
+                    if (currentCallManager != null) {
+                        currentCallManager.stopCall();
+                        currentCallManager = null;
+                    }
                     activeCallStage = null;
                 });
                 callStage.show();
@@ -390,6 +425,8 @@ public class MainView extends BorderPane {
 
         Button micBtn = createIconButton("🎤");
         micBtn.setOnAction(e -> toggleRecording());
+        attachBtn = createIconButton("📎");
+        attachBtn.setOnAction(e -> choisirEtEnvoyerFichier());
 
         inputField = new TextField();
         inputField.setPromptText("Écrire un message...");
@@ -405,7 +442,7 @@ public class MainView extends BorderPane {
             }
         });
 
-        footer.getChildren().addAll(micBtn, inputField, sendBtn);
+        footer.getChildren().addAll(micBtn, attachBtn, inputField, sendBtn);
         chatPane.setBottom(footer);
     }
 
@@ -422,7 +459,7 @@ public class MainView extends BorderPane {
             } catch (Exception ex) {}
         } else {
             targetLine.stop(); targetLine.close(); isRecording = false;
-            sendMessage(audioFile.getAbsolutePath(), "AUDIO");
+            sendAudioMessage(audioFile);
             inputField.clear();
         }
     }
@@ -433,7 +470,7 @@ public class MainView extends BorderPane {
         addBubble(msg, true);
         store.addMessage(msg, false, activeContact.username);
         client.send("PRIVATE|" + myUsername + "|" + activeContact.username + "|" + content);
-        activeContact.lastMessagePreview = type.equals("AUDIO") ? "🎵 Audio" : content;
+        activeContact.lastMessagePreview = buildPreviewText(msg);
         sortAndRenderSidebar();
     }
 
@@ -444,10 +481,12 @@ public class MainView extends BorderPane {
         bubble.setStyle("-fx-background-color: " + (isSent ? BG_BUBBLE_SENT : BG_BUBBLE_RECV) + "; -fx-background-radius: 10; -fx-padding: 10;");
         
         Node contentNode;
-        if (msg.getType().equals("AUDIO")) {
-            Button play = new Button("▶ Audio");
-            play.setOnAction(e -> { try { Clip clip = AudioSystem.getClip(); clip.open(AudioSystem.getAudioInputStream(new File(msg.getContent()))); clip.start(); } catch(Exception ex) {} });
-            contentNode = play;
+        if (msg.getType().equals("AUDIO_MSG")) {
+            contentNode = createAudioNode(msg.getContent());
+        } else if (msg.getType().equals("IMAGE")) {
+            contentNode = createImageNode(msg.getContent());
+        } else if (msg.getType().equals("VIDEO") || msg.getType().equals("DOC")) {
+            contentNode = createDownloadNode(msg.getContent(), msg.getType());
         } else {
             Text text = new Text(msg.getContent());
             text.setFill(Color.web(TEXT_MAIN));
@@ -474,5 +513,256 @@ public class MainView extends BorderPane {
         Button btn = new Button(iconText);
         btn.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXT_MUTED + "; -fx-font-size: 20;");
         return btn;
+    }
+
+    private void sendAudioMessage(File audioSource) {
+        if (audioSource == null || activeContact == null) return;
+        String extension = getExtension(audioSource.getName());
+        if (extension.isEmpty()) extension = "wav";
+        sendMediaFile(audioSource, "AUDIO_MSG", extension);
+    }
+
+    private void choisirEtEnvoyerFichier() {
+        if (activeContact == null) return;
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Choisir un fichier");
+        chooser.getExtensionFilters().addAll(
+            new FileChooser.ExtensionFilter("Images", "*.jpg", "*.jpeg", "*.png", "*.gif"),
+            new FileChooser.ExtensionFilter("Vidéos", "*.mp4", "*.avi"),
+            new FileChooser.ExtensionFilter("Documents", "*.pdf", "*.docx", "*.txt")
+        );
+        File file = chooser.showOpenDialog(getScene() != null ? getScene().getWindow() : null);
+        if (file == null) return;
+
+        String ext = getExtension(file.getName()).toLowerCase();
+        if (isImageExt(ext)) {
+            sendMediaFile(file, "IMAGE", ext);
+        } else if (isVideoExt(ext)) {
+            sendMediaFile(file, "VIDEO", ext);
+        } else if (isDocExt(ext)) {
+            sendMediaFile(file, "DOC", ext);
+        }
+    }
+
+    private void sendMediaFile(File sourceFile, String messageType, String extension) {
+        new Thread(() -> {
+            try {
+                String localPath = copyToLocalMedia(sourceFile, "sent");
+                long size = sourceFile.length();
+                String fileName = sourceFile.getName();
+                byte[] data = Files.readAllBytes(sourceFile.toPath());
+                String base64 = Base64.getEncoder().encodeToString(data);
+                String payload = buildMediaPayload(messageType, fileName, size, extension, base64);
+
+                ChatMessage msg = new ChatMessage(
+                    myUsername,
+                    activeContact.username,
+                    messageType,
+                    localPath + "|" + fileName + "|" + size,
+                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm")),
+                    "✔",
+                    System.currentTimeMillis()
+                );
+
+                Platform.runLater(() -> {
+                    addBubble(msg, true);
+                    store.addMessage(msg, false, activeContact.username);
+                    activeContact.lastMessagePreview = buildPreviewText(msg);
+                    sortAndRenderSidebar();
+                });
+
+                client.send("PRIVATE|" + myUsername + "|" + activeContact.username + "|" + payload);
+            } catch (Exception e) {
+                Platform.runLater(() -> addSystemMessageInChat("Erreur envoi fichier: " + e.getMessage()));
+            }
+        }, "media-send-thread").start();
+    }
+
+    private ChatMessage parseIncomingPrivateMessage(String sender, String content) {
+        if (!content.startsWith(MEDIA_PREFIX + "|")) {
+            return new ChatMessage(
+                sender,
+                myUsername,
+                "TEXT",
+                content,
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm")),
+                "✔",
+                System.currentTimeMillis()
+            );
+        }
+
+        String[] fields = content.split("\\|", 6);
+        if (fields.length < 6) {
+            return new ChatMessage(sender, myUsername, "TEXT", content, LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm")), "✔", System.currentTimeMillis());
+        }
+
+        String msgType = fields[1];
+        String fileName = fields[2];
+        long size = parseLongSafe(fields[3]);
+        String extension = fields[4];
+        String base64 = fields[5];
+        String savedPath;
+        try {
+            savedPath = saveIncomingMedia(sender, fileName, extension, base64);
+        } catch (Exception e) {
+            savedPath = "";
+        }
+
+        return new ChatMessage(
+            sender,
+            myUsername,
+            msgType,
+            savedPath + "|" + fileName + "|" + size,
+            LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm")),
+            "✔",
+            System.currentTimeMillis()
+        );
+    }
+
+    private String buildMediaPayload(String messageType, String fileName, long size, String ext, String base64) {
+        return MEDIA_PREFIX + "|" + messageType + "|" + fileName + "|" + size + "|" + ext + "|" + base64;
+    }
+
+    private String saveIncomingMedia(String sender, String originalName, String ext, String base64) throws IOException {
+        byte[] bytes = Base64.getDecoder().decode(base64);
+        Path folder = Paths.get("received_files", sender);
+        Files.createDirectories(folder);
+        String safeName = System.currentTimeMillis() + "_" + sanitizeName(originalName);
+        if (!safeName.toLowerCase().endsWith("." + ext.toLowerCase()) && !ext.isEmpty()) {
+            safeName = safeName + "." + ext;
+        }
+        Path filePath = folder.resolve(safeName);
+        Files.write(filePath, bytes);
+        return filePath.toString();
+    }
+
+    private String copyToLocalMedia(File source, String folderName) throws IOException {
+        Path folder = Paths.get("chat_files", folderName);
+        Files.createDirectories(folder);
+        String targetName = System.currentTimeMillis() + "_" + sanitizeName(source.getName());
+        Path target = folder.resolve(targetName);
+        Files.copy(source.toPath(), target, StandardCopyOption.REPLACE_EXISTING);
+        return target.toString();
+    }
+
+    private String buildPreviewText(ChatMessage msg) {
+        switch (msg.getType()) {
+            case "AUDIO_MSG":
+                return "► Audio message";
+            case "IMAGE":
+                return "🖼️ Image";
+            case "VIDEO":
+                return "🎬 Video";
+            case "DOC":
+                return "📄 Document";
+            default:
+                return msg.getContent();
+        }
+    }
+
+    private Node createAudioNode(String packedContent) {
+        String[] meta = packedContent.split("\\|", 3);
+        String localPath = meta.length > 0 ? meta[0] : "";
+        String fileName = meta.length > 1 ? meta[1] : "audio";
+        long size = meta.length > 2 ? parseLongSafe(meta[2]) : 0;
+
+        HBox box = new HBox(8);
+        box.setAlignment(Pos.CENTER_LEFT);
+        Label label = new Label("► Audio message  •  " + humanReadableSize(size));
+        label.setTextFill(Color.web(TEXT_MAIN));
+        Button play = new Button("Play/Pause");
+        play.setOnAction(e -> {
+            try {
+                Clip clip = AudioSystem.getClip();
+                clip.open(AudioSystem.getAudioInputStream(new File(localPath)));
+                if (clip.isRunning()) clip.stop(); else clip.start();
+            } catch (Exception ignored) {}
+        });
+        Tooltip.install(play, new Tooltip(fileName));
+        box.getChildren().addAll(play, label);
+        return box;
+    }
+
+    private Node createImageNode(String packedContent) {
+        String[] meta = packedContent.split("\\|", 3);
+        String localPath = meta.length > 0 ? meta[0] : "";
+        String fileName = meta.length > 1 ? meta[1] : "image";
+        long size = meta.length > 2 ? parseLongSafe(meta[2]) : 0;
+
+        VBox box = new VBox(6);
+        ImageView imageView = new ImageView();
+        imageView.setFitWidth(220);
+        imageView.setPreserveRatio(true);
+        try {
+            imageView.setImage(new Image(new File(localPath).toURI().toString(), true));
+        } catch (Exception ignored) {}
+        Label info = new Label(fileName + " • " + humanReadableSize(size));
+        info.setTextFill(Color.web(TEXT_MAIN));
+        box.getChildren().addAll(imageView, info);
+        return box;
+    }
+
+    private Node createDownloadNode(String packedContent, String type) {
+        String[] meta = packedContent.split("\\|", 3);
+        String localPath = meta.length > 0 ? meta[0] : "";
+        String fileName = meta.length > 1 ? meta[1] : "file";
+        long size = meta.length > 2 ? parseLongSafe(meta[2]) : 0;
+
+        VBox box = new VBox(6);
+        Label label = new Label(fileName + " • " + humanReadableSize(size));
+        label.setTextFill(Color.web(TEXT_MAIN));
+        Button action = new Button(type.equals("VIDEO") ? "Download/Open Video" : "Download/Open Document");
+        action.setOnAction(e -> {
+            try {
+                java.awt.Desktop.getDesktop().open(new File(localPath));
+            } catch (Exception ignored) {}
+        });
+        box.getChildren().addAll(label, action);
+        return box;
+    }
+
+    private void addSystemMessageInChat(String text) {
+        if (messagesBox == null) return;
+        HBox row = new HBox();
+        row.setAlignment(Pos.CENTER);
+        Label label = new Label(text);
+        label.setTextFill(Color.web(TEXT_MUTED));
+        row.getChildren().add(label);
+        messagesBox.getChildren().add(row);
+    }
+
+    private boolean isImageExt(String ext) {
+        return "jpg".equals(ext) || "jpeg".equals(ext) || "png".equals(ext) || "gif".equals(ext);
+    }
+
+    private boolean isVideoExt(String ext) {
+        return "mp4".equals(ext) || "avi".equals(ext);
+    }
+
+    private boolean isDocExt(String ext) {
+        return "pdf".equals(ext) || "docx".equals(ext) || "txt".equals(ext);
+    }
+
+    private String getExtension(String fileName) {
+        int idx = fileName.lastIndexOf('.');
+        return idx > 0 ? fileName.substring(idx + 1) : "";
+    }
+
+    private String sanitizeName(String fileName) {
+        return fileName.replaceAll("[^a-zA-Z0-9._-]", "_");
+    }
+
+    private String humanReadableSize(long size) {
+        if (size < 1024) return size + " B";
+        if (size < 1024 * 1024) return (size / 1024) + " KB";
+        return String.format("%.1f MB", size / (1024.0 * 1024.0));
+    }
+
+    private long parseLongSafe(String val) {
+        try {
+            return Long.parseLong(val);
+        } catch (Exception e) {
+            return 0L;
+        }
     }
 }

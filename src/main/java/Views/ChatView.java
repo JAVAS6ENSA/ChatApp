@@ -12,6 +12,9 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import server.clientAPP;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import java.io.File;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -44,6 +47,8 @@ public class ChatView extends BorderPane {
     private streaming.CallManager currentCallManager;
     private CallStage             currentCallStage;
     private clientAPP             client;
+    private final int localAudioPort = 5001;
+    private boolean isCallerInCurrentCall = false;
 
     // currentUsername = username dyal user connecté
     // targetUsername  = username dyal contact
@@ -111,6 +116,7 @@ public class ChatView extends BorderPane {
 
     private void initiateCall() {
         addSystemMessage("Tentative d'appel vers " + targetUsername + "...");
+        isCallerInCurrentCall = true;
         client.send("CALL_REQUEST|" + targetUsername);
         showCallUI(model.StatutAppel.LIBRE);
     }
@@ -216,16 +222,13 @@ public class ChatView extends BorderPane {
                             "-fx-border-radius: " + (isSent ? "18 18 4 18" : "18 18 18 4") + ";"
             );
 
-            Text text = new Text(content);
-            text.setFill(Color.web(TEXT_MAIN));
-            text.setFont(Font.font("System", 13));
-            text.setWrappingWidth(380);
+            javafx.scene.Node messageNode = createMessageNode(content);
 
             Label timeLabel = new Label(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")));
             timeLabel.setFont(Font.font("System", 10));
             timeLabel.setTextFill(Color.web(TEXT_MUTED));
 
-            bubble.getChildren().addAll(new TextFlow(text), timeLabel);
+            bubble.getChildren().addAll(messageNode, timeLabel);
 
             if (isSent) {
                 row.setAlignment(Pos.CENTER_RIGHT);
@@ -238,6 +241,79 @@ public class ChatView extends BorderPane {
             row.getChildren().add(bubble);
             messagesBox.getChildren().add(row);
         });
+    }
+
+    private javafx.scene.Node createMessageNode(String content) {
+        if (content.startsWith("MEDIA_MSG|AUDIO_MSG|")) {
+            String[] fields = content.split("\\|", 6);
+            String fileName = fields.length > 2 ? fields[2] : "audio";
+            long size = fields.length > 3 ? parseLongSafe(fields[3]) : 0L;
+            String encoded = fields.length > 5 ? fields[5] : "";
+            File temp = persistTempMedia(fileName, encoded);
+
+            HBox box = new HBox(8);
+            box.setAlignment(Pos.CENTER_LEFT);
+            Button play = new Button("Play/Pause");
+            play.setOnAction(e -> {
+                try {
+                    Clip clip = AudioSystem.getClip();
+                    clip.open(AudioSystem.getAudioInputStream(temp));
+                    if (clip.isRunning()) clip.stop(); else clip.start();
+                } catch (Exception ignored) {}
+            });
+            Label info = new Label("► Audio message • " + humanReadableSize(size));
+            info.setTextFill(Color.web(TEXT_MAIN));
+            box.getChildren().addAll(play, info);
+            return box;
+        }
+
+        if (content.startsWith("MEDIA_MSG|")) {
+            String[] fields = content.split("\\|", 6);
+            String mediaType = fields.length > 1 ? fields[1] : "FILE";
+            String fileName = fields.length > 2 ? fields[2] : "file";
+            long size = fields.length > 3 ? parseLongSafe(fields[3]) : 0L;
+            String encoded = fields.length > 5 ? fields[5] : "";
+            File temp = persistTempMedia(fileName, encoded);
+
+            VBox box = new VBox(6);
+            Label info = new Label(fileName + " • " + humanReadableSize(size));
+            info.setTextFill(Color.web(TEXT_MAIN));
+            Button open = new Button(mediaType.equals("IMAGE") ? "Open Image" : "Download/Open");
+            open.setOnAction(e -> {
+                try { java.awt.Desktop.getDesktop().open(temp); } catch (Exception ignored) {}
+            });
+            box.getChildren().addAll(info, open);
+            return box;
+        }
+
+        Text text = new Text(content);
+        text.setFill(Color.web(TEXT_MAIN));
+        text.setFont(Font.font("System", 13));
+        text.setWrappingWidth(380);
+        return new TextFlow(text);
+    }
+
+    private File persistTempMedia(String fileName, String base64) {
+        try {
+            java.nio.file.Path folder = java.nio.file.Paths.get("chat_tmp");
+            java.nio.file.Files.createDirectories(folder);
+            java.nio.file.Path path = folder.resolve(System.currentTimeMillis() + "_" + fileName.replaceAll("[^a-zA-Z0-9._-]", "_"));
+            byte[] data = java.util.Base64.getDecoder().decode(base64);
+            java.nio.file.Files.write(path, data);
+            return path.toFile();
+        } catch (Exception e) {
+            return new File(fileName);
+        }
+    }
+
+    private String humanReadableSize(long size) {
+        if (size < 1024) return size + " B";
+        if (size < 1024 * 1024) return (size / 1024) + " KB";
+        return String.format("%.1f MB", size / (1024.0 * 1024.0));
+    }
+
+    private long parseLongSafe(String v) {
+        try { return Long.parseLong(v); } catch (Exception e) { return 0L; }
     }
 
     private void addSystemMessage(String text) {
@@ -301,8 +377,10 @@ public class ChatView extends BorderPane {
                 }
                 break;
             case "INCOMING_CALL":
+            case "CALL_REQUEST":
                 if (parts.length > 1) {
                     Platform.runLater(() -> {
+                        isCallerInCurrentCall = false;
                         showCallUI(model.StatutAppel.RINGING);
                     });
                 }
@@ -313,10 +391,19 @@ public class ChatView extends BorderPane {
             case "CALL_ACCEPTED":
                 addSystemMessage((parts.length > 1 ? parts[1] : "") + " a accepté l'appel.");
                 if (currentCallStage != null) currentCallStage.getView().updateState(model.StatutAppel.IN_CALL);
+                client.send("CALL_READY|" + localAudioPort);
+                break;
+            case "WAIT_CALLER_READY":
+                addSystemMessage("En attente du port UDP de l'appelant...");
+                break;
+            case "START_AUDIO":
+                addSystemMessage("Canal audio prêt.");
                 if (parts.length > 2) {
-                    currentCallManager = new streaming.CallManager(parts[2], true);
+                    if (currentCallManager != null) currentCallManager.stopCall();
+                    currentCallManager = new streaming.CallManager(parts[1], isCallerInCurrentCall);
                     currentCallManager.startCall();
                 }
+                if (currentCallStage != null) currentCallStage.getView().updateState(model.StatutAppel.IN_CALL);
                 break;
             case "CALL_STARTED":
                 addSystemMessage("Appel démarré avec " + (parts.length > 1 ? parts[1] : ""));
@@ -370,7 +457,7 @@ public class ChatView extends BorderPane {
             currentCallStage = new CallStage(targetUsername, status);
             CallView view = currentCallStage.getView();
             
-            view.setOnAccept(() -> client.send("CALL_ACCEPT|"));
+            view.setOnAccept(() -> client.send("CALL_ACCEPT|" + localAudioPort));
             view.setOnDecline(() -> client.send("CALL_REFUSE|"));
             view.setOnHangUp(() -> terminateCall());
             
