@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="Views.ChatController" prefWidth="1280" prefHeight="780"
+            styleClass="app-root">
+
+    <left>
+        <VBox prefWidth="320" styleClass="sidebar">
+            <HBox alignment="CENTER_LEFT" spacing="10" styleClass="sidebar-header">
+                <HBox fx:id="meAvatarBox" alignment="CENTER"/>
+                <Label fx:id="currentUserLabel" styleClass="title-md"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="addContactBtn" onAction="#onAddContact" styleClass="btn-icon-green"/>
+            </HBox>
+
+            <HBox styleClass="sidebar-header" alignment="CENTER_LEFT">
+                <padding><Insets top="6" right="12" bottom="6" left="12"/></padding>
+                <TextField fx:id="searchField" promptText="Search or start new chat" styleClass="input-dark" HBox.hgrow="ALWAYS"/>
+            </HBox>
+
+            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="scroll-dark" VBox.vgrow="ALWAYS">
+                <VBox fx:id="contactsList" spacing="0"/>
+            </ScrollPane>
+
+            <HBox spacing="8">
+                <padding><Insets top="8" right="12" bottom="12" left="12"/></padding>
+                <Button text="Profile" onAction="#onEditProfile" styleClass="btn-secondary" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                <Button text="Logout" onAction="#onLogout" styleClass="btn-danger" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            </HBox>
+        </VBox>
+    </left>
+
+    <center>
+        <BorderPane styleClass="chat-area">
+            <top>
+                <VBox>
+                    <HBox alignment="CENTER_LEFT" spacing="12" styleClass="chat-header">
+                        <HBox fx:id="activeAvatarBox" alignment="CENTER"/>
+                        <VBox spacing="2">
+                            <Label fx:id="activeChatTitle" text="Select a conversation" styleClass="title-md"/>
+                            <Label fx:id="activeChatStatus" text="" styleClass="text-muted"/>
+                        </VBox>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="videoCallBtn" onAction="#onVideoCall" styleClass="btn-icon-green"/>
+                        <Button fx:id="audioCallBtn" onAction="#onAudioCall" styleClass="btn-icon-green"/>
+                        <Button fx:id="infoBtn" onAction="#onShowInfo" styleClass="btn-icon-green"/>
+                        <Button fx:id="endCallBtn" onAction="#onEndCall" styleClass="btn-icon-red" visible="false" managed="false"/>
+                    </HBox>
+                    <HBox fx:id="callBanner" styleClass="call-banner" alignment="CENTER_LEFT" visible="false" managed="false">
+                        <Label fx:id="callBannerLabel" text="" styleClass="call-banner-text"/>
+                    </HBox>
+                </VBox>
+            </top>
+            <center>
+                <ScrollPane fx:id="messagesScroll" fitToWidth="true" hbarPolicy="NEVER" styleClass="scroll-dark">
+                    <VBox fx:id="messagesBox" spacing="6">
+                        <padding><Insets top="16" right="20" bottom="16" left="20"/></padding>
+                    </VBox>
+                </ScrollPane>
+            </center>
+            <bottom>
+                <VBox>
+                    <HBox fx:id="recordingBar" styleClass="recording-bar" alignment="CENTER_LEFT" spacing="10" visible="false" managed="false">
+                        <padding><Insets top="6" right="14" bottom="6" left="14"/></padding>
+                        <Label text="Recording" styleClass="recording-label"/>
+                        <HBox fx:id="waveformBox" alignment="CENTER_LEFT" spacing="3"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="recordingTimer" text="00:00" styleClass="recording-label"/>
+                    </HBox>
+                    <HBox spacing="8" styleClass="chat-input-bar" alignment="CENTER">
+                        <Button fx:id="attachBtn" onAction="#onSendImage" styleClass="btn-icon-grey"/>
+                        <TextField fx:id="messageInput" promptText="Type a message" styleClass="input-dark" HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="audioBtn" onAction="#onAudioMessage" styleClass="btn-icon-grey"/>
+                        <Button fx:id="sendBtn" onAction="#sendMessage" styleClass="btn-icon-green"/>
+                    </HBox>
+                </VBox>
+            </bottom>
+        </BorderPane>
+    </center>
+</BorderPane>
