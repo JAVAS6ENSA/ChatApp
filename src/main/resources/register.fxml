@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="Views.RegisterController" styleClass="app-root">
+    <VBox maxWidth="460" spacing="12" styleClass="auth-card" alignment="CENTER_LEFT">
+        <padding><Insets top="32" right="32" bottom="32" left="32"/></padding>
+        <Label text="Create Account" styleClass="title-lg"/>
+        <Label text="Set up your chat profile" styleClass="text-muted"/>
+
+        <Label text="Username" styleClass="text-muted"/>
+        <TextField fx:id="usernameField" promptText="Choose username" styleClass="input-dark"/>
+        <Label text="Email" styleClass="text-muted"/>
+        <TextField fx:id="emailField" promptText="Enter email" styleClass="input-dark"/>
+        <Label text="Password" styleClass="text-muted"/>
+        <PasswordField fx:id="passwordField" promptText="Create password" styleClass="input-dark"/>
+        <Label text="Confirm Password" styleClass="text-muted"/>
+        <PasswordField fx:id="confirmField" promptText="Confirm password" styleClass="input-dark"/>
+
+        <Label fx:id="errorLabel" wrapText="true" styleClass="text-muted"/>
+
+        <HBox spacing="10">
+            <Button fx:id="registerButton" text="Register" onAction="#handleRegister" styleClass="btn-primary"/>
+            <Button text="Back to Login" onAction="#goToLogin" styleClass="btn-ghost"/>
+        </HBox>
+    </VBox>
+</StackPane>
