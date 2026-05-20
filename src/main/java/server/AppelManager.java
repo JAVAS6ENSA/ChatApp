@@ -26,7 +26,6 @@ public class AppelManager {
         SessionAppel u1 = appels.putIfAbsent(caller.getUsername(), session);
         SessionAppel u2 = appels.putIfAbsent(reciever.getUsername(), session);
         if (u1 != null || u2 != null) {
-            // Roll back any partial insertion (only remove the entries we just added).
             if (u1 == null) appels.remove(caller.getUsername(), session);
             if (u2 == null) appels.remove(reciever.getUsername(), session);
             throw new AlreadyOngoingCall();
@@ -57,11 +56,6 @@ public class AppelManager {
         }
     }
 
-    /**
-     * Caller-side cancellation. Only allowed while the call is still ringing
-     * (the recipient has not picked up yet). Returns the cleaned-up session so
-     * the caller can notify the recipient.
-     */
     public SessionAppel annulerAppel(String caller) {
         SessionAppel session = getAppelByUser(caller);
         if (session == null) return null;
@@ -78,8 +72,6 @@ public class AppelManager {
         SessionAppel session = getAppelByUser(reciever);
         if (session == null) return false;
         synchronized (session) {
-            // Allow termination both while ringing AND while connected. Without
-            // this, the caller cannot tear down a still-ringing call.
             if (session.getStatut() != StatutAppel.IN_CALL
                     && session.getStatut() != StatutAppel.RINGING) return false;
             session.terminer();

@@ -7,14 +7,12 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 
-/** Shared avatar processing so registration and the profile editor produce
- *  identically sized images (256x256 JPEG) that fit comfortably in the DB. */
+
 public final class ImageUtil {
 
     private ImageUtil() {}
 
-    /** Read an image file and return a 256x256 JPEG byte[], or null if the
-     *  file is not a readable image. */
+
     public static byte[] compressAvatar(File source) throws Exception {
         BufferedImage src = ImageIO.read(source);
         if (src == null) return null;

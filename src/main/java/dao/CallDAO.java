@@ -7,7 +7,7 @@ import java.util.*;
 
 public class CallDAO {
 
-    /** Insert a 1:1 call row in "ongoing" state. Returns generated id, or -1. */
+
     public int startCall(int callerId, int receiverId, String type) {
         String sql = "INSERT INTO calls (caller_id, receiver_id, type, status) " +
                 "VALUES (?, ?, ?, 'ongoing')";
@@ -26,7 +26,7 @@ public class CallDAO {
         return -1;
     }
 
-    /** Insert a group call row. Returns generated id, or -1. */
+
     public int startGroupCall(int callerId, int groupId, String type) {
         String sql = "INSERT INTO calls (caller_id, group_id, type, status) " +
                 "VALUES (?, ?, ?, 'ongoing')";

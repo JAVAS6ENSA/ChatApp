@@ -40,16 +40,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 
-/**
- * Drives a 1:1 audio/video call.
- *
- * Threads:
- *   - videoCaptureLoop : grabs frames, paints them into the local PiP, and
- *                        sends the JPEG over UDP to the remote peer.
- *   - videoReceiveLoop : reads JPEG packets and paints them into the remote view.
- *   - audioSender      : reads from the mic and sends raw PCM over UDP.
- *   - audioReceiver    : reads PCM packets and writes them to the speakers.
- */
+
 public class CallManager {
 
     private final String remoteIP;
@@ -80,9 +71,7 @@ public class CallManager {
     private Timeline durationTimer;
     private long callStartMillis;
 
-    // Pre-rendered solid-black JPEG sent to the peer when the user hides
-    // their camera, so the remote side gets an explicit blackout instead of
-    // a stale last frame.
+
     private byte[] blackFrameBytes;
 
     public CallManager(String remoteIP, boolean isCaller, boolean isVideo) {
@@ -108,13 +97,10 @@ public class CallManager {
         }
     }
 
-    /** Set a callback fired when the user closes / ends the call window. */
     public void setOnEnd(Runnable onEnd) {
         this.onEnd = onEnd;
     }
 
-    /** Override the displayed peer name (used when the server hands us a real
-     *  username after construction, replacing the placeholder). */
     public void setPeerName(String name) {
         if (name == null || name.isBlank()) return;
         this.peerName = name;
@@ -160,9 +146,6 @@ public class CallManager {
         });
     }
 
-    // ────────────────────────────────────────────────────────────
-    //  UI
-    // ────────────────────────────────────────────────────────────
 
     private void buildCallWindow() {
         if (callStage != null) return;
@@ -187,7 +170,6 @@ public class CallManager {
     }
 
     private Region buildAudioRoot() {
-        // Top: avatar + name + status.
         Circle avatar = new Circle(56);
         avatar.setFill(Color.web("#25d366"));
         avatar.setStroke(Color.web("#1f1f1f"));
@@ -212,7 +194,6 @@ public class CallManager {
         top.setAlignment(Pos.CENTER);
         top.setPadding(new Insets(40, 14, 14, 14));
 
-        // Center: duration timer.
         durationLabel = new Label("00:00");
         durationLabel.setTextFill(Color.web("#9aa6ad"));
         durationLabel.setStyle("-fx-font-size: 18px;");
@@ -220,7 +201,6 @@ public class CallManager {
         VBox center = new VBox(durationLabel);
         center.setAlignment(Pos.CENTER);
 
-        // Bottom: pinned controls.
         HBox controls = buildControlsBar();
 
         BorderPane root = new BorderPane();
@@ -232,7 +212,6 @@ public class CallManager {
     }
 
     private Region buildVideoRoot() {
-        // Background: remote video feed.
         StackPane background = new StackPane();
         background.setStyle("-fx-background-color: #0b141a;");
 
@@ -245,7 +224,6 @@ public class CallManager {
         remotePlaceholder.setStyle("-fx-font-size: 16px;");
         background.getChildren().addAll(remotePlaceholder, remoteView);
 
-        // Picture-in-picture local preview.
         localPreviewView = new ImageView();
         localPreviewView.setFitWidth(200);
         localPreviewView.setFitHeight(150);
@@ -271,11 +249,9 @@ public class CallManager {
                 "-fx-background-radius: 12;" +
                 "-fx-border-radius: 12;");
         StackPane.setAlignment(localPreviewBox, Pos.BOTTOM_RIGHT);
-        // Bottom margin keeps the PiP above the pinned controls bar.
         StackPane.setMargin(localPreviewBox, new Insets(0, 24, 110, 0));
         makeDraggable(localPreviewBox);
 
-        // Top status overlay (peer name + status + duration).
         statusLabel = new Label(peerName + " · " + (isCaller ? "Calling…" : "Connected"));
         statusLabel.setTextFill(Color.WHITE);
         statusLabel.setStyle(
@@ -294,16 +270,14 @@ public class CallManager {
 
         VBox topOverlay = new VBox(6, statusLabel, durationLabel);
         topOverlay.setAlignment(Pos.CENTER);
-        // Without USE_PREF_SIZE the VBox would stretch to fill the StackPane
-        // and TOP_CENTER alignment would have no visible effect.
+
         topOverlay.setMaxHeight(Region.USE_PREF_SIZE);
         StackPane.setAlignment(topOverlay, Pos.TOP_CENTER);
         StackPane.setMargin(topOverlay, new Insets(20, 0, 0, 0));
 
-        // Bottom pinned controls.
+
         HBox controls = buildControlsBar();
-        // USE_PREF_SIZE prevents the HBox from stretching to fill the StackPane
-        // vertically — that was the root cause of the audio-call overlap bug.
+
         controls.setMaxHeight(Region.USE_PREF_SIZE);
         StackPane.setAlignment(controls, Pos.BOTTOM_CENTER);
 
@@ -382,7 +356,7 @@ public class CallManager {
                 "-fx-cursor: hand;");
     }
 
-    /** Lets the user drag the PiP tile around inside the stage. */
+
     private void makeDraggable(StackPane node) {
         final double[] start = new double[2];
         final double[] origin = new double[2];
@@ -406,9 +380,6 @@ public class CallManager {
         }
     }
 
-    // ────────────────────────────────────────────────────────────
-    //  Networking helpers
-    // ────────────────────────────────────────────────────────────
 
     private InetAddress resolveTargetAddress() throws Exception {
         String ip = remoteIP;
@@ -416,9 +387,6 @@ public class CallManager {
         return InetAddress.getByName(ip);
     }
 
-    // ────────────────────────────────────────────────────────────
-    //  Video
-    // ────────────────────────────────────────────────────────────
 
     private void videoCaptureLoop() {
         FrameGrabber grabber = openCamera();
@@ -436,8 +404,6 @@ public class CallManager {
             InetAddress dest = resolveTargetAddress();
             while (running) {
                 if (cameraHidden) {
-                    // Tell the peer the camera is off by sending a black frame
-                    // at a slower cadence — the receive loop will paint it.
                     if (blackFrameBytes != null && blackFrameBytes.length > 0
                             && blackFrameBytes.length < 60000) {
                         socket.send(new DatagramPacket(
@@ -452,9 +418,6 @@ public class CallManager {
                 BufferedImage bi = converter.getBufferedImage(frame);
                 if (bi == null) continue;
 
-                // Encode once as JPEG and reuse the bytes for both the local
-                // preview (decoded by JavaFX Image) and the UDP packet — this
-                // avoids pulling in javafx-swing just for SwingFXUtils.
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 javax.imageio.ImageIO.write(bi, "jpg", baos);
                 byte[] data = baos.toByteArray();
@@ -481,10 +444,7 @@ public class CallManager {
     }
 
     private FrameGrabber openCamera() {
-        // Prefer OpenCVFrameGrabber explicitly: on Linux/macOS the platform
-        // default sometimes resolves to FFmpegFrameGrabber, which can't open
-        // a V4L webcam and silently fails. Errors are now logged so a future
-        // mis-configuration is visible instead of hidden.
+
         int[] indices = isCaller ? new int[]{0, 1, 2} : new int[]{1, 0, 2};
         for (int i : indices) {
             FrameGrabber g = tryOpenOpenCV(i);
@@ -563,10 +523,6 @@ public class CallManager {
         }
     }
 
-    // ────────────────────────────────────────────────────────────
-    //  Audio
-    // ────────────────────────────────────────────────────────────
-
     private static final AudioFormat AUDIO_FORMAT =
             new AudioFormat(44100, 16, 1, true, false);
 
@@ -586,7 +542,7 @@ public class CallManager {
         try (DatagramSocket socket = new DatagramSocket()) {
             InetAddress dest = resolveTargetAddress();
             byte[] buffer = new byte[1024];
-            byte[] silence = new byte[1024]; // sent while muted to keep the path warm
+            byte[] silence = new byte[1024];
             while (running) {
                 int read = mic.read(buffer, 0, buffer.length);
                 if (read <= 0) continue;

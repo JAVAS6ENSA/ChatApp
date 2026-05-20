@@ -49,7 +49,6 @@ import java.util.*;
 
 public class ChatController {
 
-    // ─── FXML bindings ──────────────────────────────────────────────
     @FXML private Label currentUserLabel;
     @FXML private TextField searchField;
     @FXML private VBox contactsList;
@@ -94,7 +93,6 @@ public class ChatController {
     @FXML private HBox waveformBox;
     @FXML private Label recordingTimer;
 
-    // ─── Services ───────────────────────────────────────────────────
     private final UserDAO userDAO = new UserDAO();
     private final ContactDAO contactDAO = new ContactDAO();
     private final JSONMessageStore localStore = new JSONMessageStore();
@@ -103,26 +101,19 @@ public class ChatController {
     private String currentUsername;
     private int currentUserId = -1;
 
-    // ─── State ──────────────────────────────────────────────────────
     private ChatTarget activeTarget;
     private final List<Contact> contacts = new ArrayList<>();
     private final List<Group> groups = new ArrayList<>();
     private final List<CallHistoryEntry> callsHistory = new ArrayList<>();
-    private final Map<String, Integer> groupUnread = new HashMap<>();   // key: "G:<id>"
+    private final Map<String, Integer> groupUnread = new HashMap<>();
     private enum Tab { CHATS, GROUPS, CALLS }
     private Tab activeTab = Tab.CHATS;
 
     private final Map<Long, Label> tickByMid = new HashMap<>();
     private final Map<String, List<Label>> pendingTicksByContact = new HashMap<>();
 
-    // Tracks the rendered bubble for each message we may need to update
-    // in-place (edit/delete). Key format:
-    //   private: "P:<peerLower>:<senderLower>:<mid>"
-    //   group:   "G:<gid>:<senderLower>:<mid>"
     private final Map<String, MessageBubble> bubbleIndex = new HashMap<>();
     private final Set<String> blockedByMe = new HashSet<>();
-    // Senders we've already shown the "add to contacts?" prompt for this
-    // session, so an unsaved sender isn't asked again on every message.
     private final Set<String> contactAddPrompted = new HashSet<>();
 
     private static class MessageBubble {
@@ -130,7 +121,7 @@ public class ChatController {
         final HBox row;
         Node content;
         final Label editedTag;
-        final String mediaType;  // "TEXT" for plain text, otherwise media kind
+        final String mediaType;
         final boolean mine;
         MessageBubble(VBox bubble, HBox row, Node content, Label editedTag, String mediaType, boolean mine) {
             this.bubble = bubble; this.row = row; this.content = content;
@@ -153,27 +144,23 @@ public class ChatController {
             "#9b5de5", "#f15bb5", "#00bbf9", "#fb8500", "#06d6a0"
     };
 
-    // ─── 1:1 call state ─────────────────────────────────────────────
     private boolean callActive = false;
     private String pendingCallType = "AUDIO";
     private String currentCallPeer;
     private CallManager activeCall;
     private boolean callOriginatedByMe = false;
     private long callStartMs = 0;
-    private Alert incomingCallAlert;   // kept non-modal so server can close it
+    private Alert incomingCallAlert;
     private static final int CALLER_AUDIO_PORT = 6000;
     private static final int RECIPIENT_AUDIO_PORT = 6001;
 
-    // ─── Group call state ───────────────────────────────────────────
     private GroupCallSession activeGroupCall;
     private static final int GROUP_AUDIO_PORT = 7000;
     private static final int GROUP_VIDEO_PORT = 7100;
     private final Map<Integer, Alert> incomingGroupCallAlerts = new HashMap<>();
 
-    // ─── Typing indicator state ─────────────────────────────────────
     private PauseTransition typingHideTimer;
 
-    // ─── Lifecycle ──────────────────────────────────────────────────
     @FXML
     private void initialize() {
         currentUsername = SceneManager.getCurrentUsername();
@@ -185,7 +172,6 @@ public class ChatController {
         User me = userDAO.getByUsername(currentUsername);
         if (me != null) currentUserId = me.getId();
 
-        // After login show my own name; fall back to my number if unset.
         String myName = (me != null && me.getDisplayName() != null && !me.getDisplayName().isBlank())
                 ? me.getDisplayName().trim() : currentUsername;
         currentUserLabel.setText(myName);
@@ -199,14 +185,11 @@ public class ChatController {
         updateCallButtons();
         renderCurrentTab();
 
-        // Request fresh group list and call history from server
         client.send("GROUP_LIST");
         client.send("CALL_HISTORY");
         client.send("BLOCK_LIST");
 
         if (messageInput != null) {
-            // Throttle typing notifications: send at most one event per second,
-            // for both 1:1 and group conversations, while text is non-empty.
             messageInput.textProperty().addListener((obs, old, val) -> {
                 if (val == null || val.isBlank()) return;
                 long now = System.currentTimeMillis();
@@ -224,7 +207,6 @@ public class ChatController {
 
     private long lastTypingSentMs = 0;
 
-    // ─── Tabs ───────────────────────────────────────────────────────
     @FXML private void onShowChatsTab()  { switchTab(Tab.CHATS); }
     @FXML private void onShowGroupsTab() { switchTab(Tab.GROUPS); }
     @FXML private void onShowCallsTab()  { switchTab(Tab.CALLS); }
@@ -261,7 +243,6 @@ public class ChatController {
         }
     }
 
-    // ─── Icons ──────────────────────────────────────────────────────
     private void applyButtonIcons() {
         if (audioCallBtn  != null) audioCallBtn.setGraphic(makeIcon(IconShape.PHONE,  18, "icon-white"));
         if (videoCallBtn  != null) videoCallBtn.setGraphic(makeIcon(IconShape.VIDEO,  20, "icon-white"));
@@ -300,7 +281,6 @@ public class ChatController {
         return p;
     }
 
-    // ─── Contacts ───────────────────────────────────────────────────
     private void loadContacts() {
         contacts.clear();
         if (currentUserId > 0) contacts.addAll(contactDAO.getContacts(currentUserId));
@@ -318,8 +298,6 @@ public class ChatController {
                 c = new Contact(u.getId(), u.getUsername(),
                         "online".equalsIgnoreCase(u.getStatus()), u.isBlocked(), false, "now");
                 c.displayName = u.getDisplayName();
-                // Show people you've chatted with, but don't silently save them
-                // as contacts — that's an explicit choice via the prompt/button.
             } else {
                 c = new Contact(-Math.abs(peer.toLowerCase().hashCode()), peer, false, false, false, "now");
             }
@@ -341,14 +319,6 @@ public class ChatController {
         renderCurrentTab();
     }
 
-    /**
-     * What to show for a 1:1 peer in the chat list and conversation header:
-     *  • if you saved them as a contact and gave a name → that name replaces
-     *    the number;
-     *  • otherwise → just their phone number.
-     * The public name they chose at registration is shown in the Info panel,
-     * not here.
-     */
     private String peerLabel(Contact c) {
         if (c == null) return "";
         if (c.alias != null && !c.alias.isBlank()) return c.alias.trim();
@@ -356,15 +326,8 @@ public class ChatController {
         return displayNameFor(c.username);
     }
 
-    /** Cache of username(phone) → registered display name, to avoid a DB hit
-     *  on every render. Empty string means "looked up, no name set". */
     private final Map<String, String> nameCache = new HashMap<>();
 
-    /**
-     * The human label to show for a phone-number username anywhere a peer is
-     * listed (calls, groups, meetings): a saved contact's alias wins, then the
-     * name they chose at registration, and only failing both, the number.
-     */
     String displayNameFor(String username) {
         if (username == null || username.isBlank()) return "";
         for (Contact c : contacts) {
@@ -529,7 +492,6 @@ public class ChatController {
         return row;
     }
 
-    // ─── Avatar (profile picture if available, else initial) ────────
     private StackPane buildAvatar(String username, double size) {
         StackPane sp = new StackPane();
         sp.setMinSize(size, size);
@@ -572,7 +534,6 @@ public class ChatController {
         return null;
     }
 
-    // ─── Conversation ───────────────────────────────────────────────
     private void openConversation(ChatTarget target) {
         activeTarget = target;
         activeChatTitle.setText(targetLabel(target));
@@ -613,8 +574,6 @@ public class ChatController {
             Group g = target.group;
             activeChatStatus.setText(g.getMemberCount() + " members");
             groupUnread.put("G:" + g.getId(), 0);
-            // Drop any in-memory bubble references for the previous chat so
-            // edit/delete events can't accidentally target a stale node.
             bubbleIndex.keySet().removeIf(k -> k.startsWith("G:"));
 
             List<ChatMessage> hist = localStore.getConversation(currentUsername, "G:" + g.getId(), true, "G:" + g.getId());
@@ -630,8 +589,6 @@ public class ChatController {
                             mine, time, key, m.getType(), false);
                 }
             }
-            // Only sync from server if the local cache had nothing — otherwise
-            // GROUP_HISTORY would replay everything we just rendered.
             if (hist.isEmpty()) client.send("GROUP_HISTORY|" + g.getId());
             client.send("GROUP_CALL_STATUS|" + g.getId());
         }
@@ -640,12 +597,6 @@ public class ChatController {
         refreshAddToContactsButton();
     }
 
-    /**
-     * Show the header "Add to contacts" button whenever a 1:1 chat is still
-     * displaying the peer's raw phone number (no alias). That covers both a
-     * non-contact and a bare contacts-row that was never given a name. Hidden
-     * for groups and once an alias replaces the number.
-     */
     private void refreshAddToContactsButton() {
         if (addToContactsBtn == null) return;
         boolean show = activeTarget != null
@@ -656,7 +607,6 @@ public class ChatController {
         addToContactsBtn.setManaged(show);
     }
 
-    /** Save the currently-open peer as a contact, with a chosen display name. */
     @FXML
     private void onAddCurrentPeer() {
         if (activeTarget == null || !activeTarget.isContact() || currentUserId <= 0) return;
@@ -677,8 +627,6 @@ public class ChatController {
             contactDAO.renameContact(currentUserId, target.getId(), alias);
         loadContacts();
 
-        // Re-bind the open conversation to the saved contact so the header
-        // title switches from the number to the chosen name immediately.
         Contact saved = findContactByUsername(number);
         if (saved != null) openConversation(ChatTarget.ofContact(saved));
         else refreshAddToContactsButton();
@@ -692,7 +640,6 @@ public class ChatController {
         tickByMid.entrySet().removeIf(e -> old.contains(e.getValue()));
     }
 
-    // ─── Sending messages ──────────────────────────────────────────
     @FXML
     private void sendMessage() {
         if (activeTarget == null) return;
@@ -745,23 +692,8 @@ public class ChatController {
         addBubble(node, mine, time, statusTick, null, "TEXT", false);
     }
 
-    /**
-     * Renders a chat bubble.
-     *
-     * @param indexKey  if non-null, the bubble is registered in {@link #bubbleIndex}
-     *                  so it can later be updated in place (edit) or replaced with a
-     *                  tombstone (delete).
-     * @param mediaKind "TEXT", "IMAGE", "AUDIO", "FILE" — used to decide whether the
-     *                  bubble is editable (only TEXT) and to render the right
-     *                  context menu actions.
-     * @param edited    show "(edited)" tag next to the timestamp.
-     */
     private void addBubble(Node node, boolean mine, String time, Label statusTick,
                            String indexKey, String mediaKind, boolean edited) {
-        // Same logical message can arrive from several sources for one open
-        // conversation: the local store render, the server HISTORY replay, and
-        // the live echo. They all share the same indexKey, so if it's already
-        // on screen, don't draw it again. (bubbleIndex is cleared per open.)
         if (indexKey != null && bubbleIndex.containsKey(indexKey)) return;
 
         HBox row = new HBox();
@@ -799,12 +731,6 @@ public class ChatController {
         addGroupBubble(sender, content, mine, time, null, "TEXT", false);
     }
 
-    /**
-     * Bubble for a group message. Non-mine bubbles show the sender's name
-     * inside the bubble in a deterministic colour, so different members are
-     * always easy to tell apart at a glance. If indexKey is non-null the
-     * bubble is registered so it can be edited / deleted in place later.
-     */
     private void addGroupBubble(String sender, Node content, boolean mine, String time,
                                 String indexKey, String mediaKind, boolean edited) {
         HBox row = new HBox();
@@ -846,7 +772,6 @@ public class ChatController {
         Platform.runLater(() -> messagesScroll.setVvalue(1.0));
     }
 
-    /** Right-click context menu on bubbles for messages the current user owns. */
     private void attachOwnContextMenu(VBox bubble, String indexKey, MessageBubble mb) {
         ContextMenu cm = new ContextMenu();
         if ("TEXT".equalsIgnoreCase(mb.mediaType)) {
@@ -900,13 +825,11 @@ public class ChatController {
         });
     }
 
-    /** Replace a bubble's content in place with the given new text. */
     private void replaceBubbleText(MessageBubble mb, String newText, boolean edited) {
         if (mb == null) return;
         if (mb.content instanceof Label) {
             ((Label) mb.content).setText(newText);
         } else {
-            // Non-text bubbles (media) — swap their content node for a plain label.
             Label l = new Label(newText);
             l.setWrapText(true);
             l.setMaxWidth(400);
@@ -932,7 +855,6 @@ public class ChatController {
             mb.editedTag.setVisible(false);
             mb.editedTag.setManaged(false);
         }
-        // Remove the context menu — deleted messages can't be edited.
         mb.bubble.setOnContextMenuRequested(null);
     }
 
@@ -944,14 +866,12 @@ public class ChatController {
     }
 
     private int gidFromKey(String key) {
-        // "G:<gid>:<sender>:<mid>"
         String[] p = key.split(":", 4);
         if (p.length < 2) return -1;
         try { return Integer.parseInt(p[1]); } catch (NumberFormatException e) { return -1; }
     }
 
     private String peerFromKey(String key) {
-        // "P:<peer>:<sender>:<mid>"
         String[] p = key.split(":", 4);
         return p.length >= 2 ? p[1] : "";
     }
@@ -966,7 +886,6 @@ public class ChatController {
         return "G:" + gid + ":" + (sender == null ? "" : sender.toLowerCase()) + ":" + mid;
     }
 
-    /** Deterministic per-username CSS colour drawn from the shared palette. */
     private String colorForUsername(String username) {
         if (username == null || username.isEmpty()) return "#25d366";
         int idx = Math.abs(username.toLowerCase().hashCode()) % AVATAR_COLORS.length;
@@ -1110,7 +1029,6 @@ public class ChatController {
         } catch (Exception ignored) {}
     }
 
-    // ─── Server listener ───────────────────────────────────────────
     private void startServerListener() {
         Thread listener = new Thread(() -> {
             while (true) {
@@ -1147,53 +1065,45 @@ public class ChatController {
             case "CALL_END_OK":      stopCallLocally(); return;
             case "CALL_REFUSE_OK":   stopCallLocally(); return;
             case "CALL_CANCEL_OK":   stopCallLocally(); return;
-            case "WAIT_CALLER_READY":/* no-op */ return;
-            // Groups
+            case "WAIT_CALLER_READY": return;
             case "GROUP_INFO":       handleGroupInfo(p, raw);     return;
             case "GROUP_LIST_END":   renderCurrentTab();          return;
             case "GROUP_HISTORY":    handleGroupHistory(p, raw);  return;
-            case "GROUP_HISTORY_END":/* no-op */                  return;
+            case "GROUP_HISTORY_END": return;
             case "GROUP_MSG":        handleGroupMsg(p, raw);      return;
             case "GROUP_TYPING":     handleGroupTyping(p);        return;
             case "GROUP_REMOVED":    handleGroupRemoved(p);       return;
             case "GROUP_FORBIDDEN":  showInfo("You don't have permission for that action."); return;
-            // Group calls
             case "GROUP_CALL_INVITE":     handleGroupCallInvite(p);     return;
-            case "GROUP_CALL_STARTED":    /* host got confirmation */   return;
+            case "GROUP_CALL_STARTED":    return;
             case "GROUP_CALL_PEERS":      handleGroupCallPeers(p, raw); return;
             case "GROUP_CALL_PEER_JOINED":handleGroupCallPeerJoined(p, raw); return;
             case "GROUP_CALL_PEER_LEFT":  handleGroupCallPeerLeft(p);   return;
             case "GROUP_CALL_ACTIVE":     handleGroupCallActive(p);     return;
             case "GROUP_CALL_NOT_FOUND":  showInfo("Meeting has ended.");return;
             case "GROUP_CALL_STATUS":     handleGroupCallStatus(raw);   return;
-            // Edit / delete
             case "MSG_EDITED_PRIV":       handleMsgEditedPriv(raw);     return;
             case "MSG_DELETED_PRIV":      handleMsgDeletedPriv(p);      return;
             case "MSG_EDITED_GROUP":      handleMsgEditedGroup(raw);    return;
             case "MSG_DELETED_GROUP":     handleMsgDeletedGroup(p);     return;
             case "MSG_EDIT_FAIL":         showInfo("Could not edit message."); return;
             case "MSG_DELETE_FAIL":       showInfo("Could not delete message."); return;
-            // Blocks
             case "BLOCKED":               handleBlockedNotice(p);       return;
             case "BLOCKED_OK":            handleBlockedOk(p, true);     return;
             case "UNBLOCKED_OK":          handleBlockedOk(p, false);    return;
             case "BLOCK_LIST":            handleBlockList(p);           return;
-            case "BLOCK_NOOP":            /* already blocked */         return;
-            // Leave group
+            case "BLOCK_NOOP":            return;
             case "GROUP_LEFT":            handleGroupLeft(p);           return;
-            // Call history
             case "CALL_HISTORY":     handleCallHistory(p, raw);   return;
             case "CALL_HISTORY_END": renderCurrentTab();          return;
         }
     }
 
-    // ─── PRIVATE messages ─────────────────────────────────────────
     private void handlePrivate(String[] p) {
         if (p.length < 4) return;
         String from = p[1];
         String rawContent = p[3];
 
-        // Optional MID prefix lets us address the message for later edit/delete.
         long mid = 0;
         String text = rawContent;
         if (rawContent.startsWith("MID:")) {
@@ -1309,7 +1219,6 @@ public class ChatController {
         }
     }
 
-    // ─── 1:1 Call handlers ────────────────────────────────────────
     private void handleIncomingCallRequest(String[] p) {
         if (p.length < 2) return;
         String from = p[1];
@@ -1320,7 +1229,6 @@ public class ChatController {
         callOriginatedByMe = false;
         services.NotificationSounds.startIncomingRing();
 
-        // Non-modal alert so the server can close it when the caller cancels.
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Incoming " + inType.toLowerCase() + " call");
         alert.setHeaderText(displayNameFor(from) + " is calling");
@@ -1329,15 +1237,11 @@ public class ChatController {
         ButtonType reject = new ButtonType("Reject", ButtonBar.ButtonData.CANCEL_CLOSE);
         alert.getButtonTypes().setAll(accept, reject);
         alert.setOnHidden(e -> {
-            // Result is null when programmatically closed (i.e. caller cancelled).
             ButtonType result = alert.getResult();
             if (result == null || result == ButtonType.CANCEL || result == reject) {
                 if (incomingCallAlert == alert) {
                     incomingCallAlert = null;
                     if (currentCallPeer != null && from.equalsIgnoreCase(currentCallPeer)) {
-                        // User rejected (or system closed via cancellation handler already).
-                        // If we still hold caller info, send a refuse; cancellation path
-                        // clears currentCallPeer first so we won't double-send.
                         client.send("CALL_REFUSE|" + from);
                     }
                     stopCallLocally();
@@ -1357,7 +1261,6 @@ public class ChatController {
     }
 
     private void handleCallAccepted(String[] p) {
-        // p = [CALL_ACCEPTED, recvUser, recvIp, port]
         if (p.length >= 2 && p[1] != null && !p[1].isBlank()) currentCallPeer = p[1];
         services.NotificationSounds.stopOutgoingDial();
         client.send("CALL_READY|" + CALLER_AUDIO_PORT + "|" + server.clientAPP.getLocalIp());
@@ -1366,10 +1269,8 @@ public class ChatController {
     }
 
     private void handleStartAudio(String[] p) {
-        // p = [START_AUDIO, remoteIp, "<port>|<peerName>"]   (split limit=4 → port|peerName ends in p[2]+p[3])
         if (p.length < 2) return;
         String remoteIp = p[1];
-        // The "tail" may have been split into p[2]/p[3] — recombine.
         String peerName = null;
         if (p.length >= 3) {
             String tail = p.length >= 4 ? p[2] + "|" + p[3] : p[2];
@@ -1386,12 +1287,9 @@ public class ChatController {
     }
 
     private void handleCallCancelled(String[] p) {
-        // Server tells the receiver the caller hung up before they answered.
-        // Close any visible incoming-call popup, then reset all call state.
         if (incomingCallAlert != null) {
             Alert toClose = incomingCallAlert;
             incomingCallAlert = null;
-            // Clear peer so the alert's onHidden() doesn't fire a CALL_REFUSE.
             currentCallPeer = null;
             try { toClose.setResult(ButtonType.CANCEL); } catch (Exception ignored) {}
             try { toClose.close(); } catch (Exception ignored) {}
@@ -1404,7 +1302,6 @@ public class ChatController {
         stopCallLocally();
     }
 
-    // ─── Call flow helpers ────────────────────────────────────────
     @FXML
     private void onAudioCall() {
         if (activeTarget != null && activeTarget.isGroup()) startOutgoingGroupCall("AUDIO");
@@ -1438,8 +1335,6 @@ public class ChatController {
     private void onEndCall() {
         if (currentCallPeer != null) {
             try {
-                // While ringing, tell the server it's a cancellation (different signal
-                // shown to the receiver). Once the stream is live, plain CALL_END.
                 if (activeCall == null) client.send("CALL_CANCEL|" + currentCallPeer);
                 else                    client.send("CALL_END|" + currentCallPeer);
             } catch (Exception ignored) {}
@@ -1478,8 +1373,6 @@ public class ChatController {
             try { activeCall.stopCall(); } catch (Exception ignored) {}
             activeCall = null;
         }
-        // If the call already had a peer & we know roughly how long it ran, drop
-        // a system message in the chat for the user's convenience.
         if (callStartMs > 0 && currentCallPeer != null && callActive) {
             long durationSecs = Math.max(0, (System.currentTimeMillis() - callStartMs) / 1000);
             recordCallSystemMessage(currentCallPeer, pendingCallType, durationSecs, false);
@@ -1491,7 +1384,6 @@ public class ChatController {
         callStartMs = 0;
         hideCallBanner();
         updateCallButtons();
-        // Pull fresh history so the Calls tab + chat get system summaries.
         client.send("CALL_HISTORY");
     }
 
@@ -1542,9 +1434,7 @@ public class ChatController {
         if (infoBtn != null) infoBtn.setDisable(!hasContact);
     }
 
-    // ─── Group: list / info / management ──────────────────────────
     private void handleGroupInfo(String[] p, String raw) {
-        // GROUP_INFO|id|name|members(csv)|admins(csv)
         String[] f = raw.split("\\|", 5);
         if (f.length < 5) return;
         int gid; try { gid = Integer.parseInt(f[1]); } catch (NumberFormatException e) { return; }
@@ -1583,7 +1473,6 @@ public class ChatController {
     }
 
     private void handleGroupHistory(String[] p, String raw) {
-        // GROUP_HISTORY|gid|sender|type|[MID:<n>|][EDITED|]content
         String[] f = raw.split("\\|", 5);
         if (f.length < 5) return;
         int gid; try { gid = Integer.parseInt(f[1]); } catch (NumberFormatException e) { return; }
@@ -1623,8 +1512,6 @@ public class ChatController {
     }
 
     private void handleGroupMsg(String[] p, String raw) {
-        // New wire format:  GROUP_MSG|gid|sender|TYPE|MID:<n>|content
-        // Legacy fallback:  GROUP_MSG|gid|sender|TYPE|content
         String[] f = raw.split("\\|", 5);
         if (f.length < 5) return;
         int gid; try { gid = Integer.parseInt(f[1]); } catch (NumberFormatException e) { return; }
@@ -1643,11 +1530,7 @@ public class ChatController {
         }
         boolean mine = sender.equalsIgnoreCase(currentUsername);
 
-        // Bug fix: skip echo of our own group broadcasts so we don't render
-        // (or persist) the message twice. The optimistic copy is already in
-        // the bubble index from sendMessage / sendMediaToActiveTarget.
-
-            if (!mine) services.NotificationSounds.messageReceived(); // no-op, kept for clarity
+            if (!mine) services.NotificationSounds.messageReceived();
 
 
         long ts = System.currentTimeMillis();
@@ -1716,7 +1599,6 @@ public class ChatController {
         VBox memberRows = new VBox(6);
         Set<String> selected = new HashSet<>();
         Set<String> admins = new HashSet<>();
-        // Always pre-include the creator as an admin (locked).
         admins.add(currentUsername.toLowerCase());
         for (Contact c : contacts) {
             CheckBox cb = new CheckBox(peerLabel(c));
@@ -1848,9 +1730,7 @@ public class ChatController {
         d.showAndWait();
     }
 
-    // ─── Group call handlers ──────────────────────────────────────
     private void handleGroupCallInvite(String[] p) {
-        // GROUP_CALL_INVITE|gid|caller|type
         if (p.length < 3) return;
         int gid; try { gid = Integer.parseInt(p[1]); } catch (NumberFormatException e) { return; }
         String caller = p[2];
@@ -1876,11 +1756,10 @@ public class ChatController {
     }
 
     private void handleGroupCallPeers(String[] p, String raw) {
-        // GROUP_CALL_PEERS|gid|type|peer1,ip,aPort,vPort;peer2,...
         String[] f = raw.split("\\|", 4);
         if (f.length < 3) return;
         if (activeGroupCall == null) return;
-        if (f.length == 3) return; // no peers yet
+        if (f.length == 3) return;
         String[] peerList = f[3].split(";");
         for (String entry : peerList) {
             if (entry.isBlank()) continue;
@@ -1897,7 +1776,6 @@ public class ChatController {
     }
 
     private void handleGroupCallPeerJoined(String[] p, String raw) {
-        // GROUP_CALL_PEER_JOINED|gid|user|ip|aPort|vPort
         String[] f = raw.split("\\|");
         if (f.length < 6) return;
         if (activeGroupCall == null) return;
@@ -1916,8 +1794,6 @@ public class ChatController {
         activeGroupCall.removePeer(p[2]);
     }
 
-    // GROUP_CALL_ACTIVE|<gid>|<type>  — user tried to start a meeting but one
-    // is already in flight. Auto-join the existing one instead of nothing.
     private void handleGroupCallActive(String[] p) {
         if (p.length < 3) return;
         int gid; try { gid = Integer.parseInt(p[1]); } catch (NumberFormatException e) { return; }
@@ -1926,7 +1802,6 @@ public class ChatController {
         startOrJoinGroupCall(gid, type, false);
     }
 
-    // GROUP_CALL_STATUS|<gid>|active|<type>|<n>   or   |<gid>|none
     private void handleGroupCallStatus(String raw) {
         String[] f = raw.split("\\|");
         if (f.length < 3) return;
@@ -1943,9 +1818,7 @@ public class ChatController {
 
     private static int safeInt(String s) { try { return Integer.parseInt(s); } catch (Exception e) { return 0; } }
 
-    // ─── Edit / delete handlers ──────────────────────────────────
     private void handleMsgEditedPriv(String raw) {
-        // MSG_EDITED_PRIV|<sender>|<peer>|<mid>|<newContent>
         String[] f = raw.split("\\|", 5);
         if (f.length < 5) return;
         long mid; try { mid = Long.parseLong(f[3]); } catch (NumberFormatException e) { return; }
@@ -1954,13 +1827,10 @@ public class ChatController {
         String key = privateBubbleKey(other, f[1], mid);
         MessageBubble mb = bubbleIndex.get(key);
         if (mb != null) replaceBubbleText(mb, f[4], true);
-        // also update local store
         try { localStore.editMessage(currentUsername, other, false, mid, f[4]); } catch (Exception ignored) {}
     }
 
     private void handleMsgDeletedPriv(String[] p) {
-        // p = [MSG_DELETED_PRIV, sender, peer, mid]   (split limit=4)
-        // The third token contains "peer|mid" because split limit=4.
         String sender = p[1];
         String tail = p.length >= 4 ? p[2] + "|" + p[3] : p[2];
         String[] tp = tail.split("\\|");
@@ -1974,7 +1844,6 @@ public class ChatController {
     }
 
     private void handleMsgEditedGroup(String raw) {
-        // MSG_EDITED_GROUP|<gid>|<sender>|<mid>|<newContent>
         String[] f = raw.split("\\|", 5);
         if (f.length < 5) return;
         int gid; try { gid = Integer.parseInt(f[1]); } catch (NumberFormatException e) { return; }
@@ -1985,7 +1854,6 @@ public class ChatController {
     }
 
     private void handleMsgDeletedGroup(String[] p) {
-        // p = [MSG_DELETED_GROUP, gid, sender, mid]
         if (p.length < 4) return;
         int gid; try { gid = Integer.parseInt(p[1]); } catch (NumberFormatException e) { return; }
         long mid; try { mid = Long.parseLong(p[3]); } catch (NumberFormatException e) { return; }
@@ -1994,9 +1862,7 @@ public class ChatController {
         try { localStore.deleteMessage(currentUsername, "G:" + gid, true, mid); } catch (Exception ignored) {}
     }
 
-    // ─── Block handlers ──────────────────────────────────────────
     private void handleBlockedNotice(String[] p) {
-        // The user tried to send to someone who blocked them.
         String peer = p.length > 1 ? p[1] : "";
         showInfo("Cannot deliver — " + peer + " has blocked you.");
     }
@@ -2009,13 +1875,11 @@ public class ChatController {
         renderCurrentTab();
         if (activeTarget != null && activeTarget.isContact()
                 && activeTarget.contact.username.equalsIgnoreCase(peer)) {
-            // Refresh status text to reflect blocked state.
             activeChatStatus.setText(blocked ? "blocked" : (activeTarget.contact.isOnline ? "online" : "offline"));
         }
     }
 
     private void handleBlockList(String[] p) {
-        // BLOCK_LIST|user1,user2,...   (no list ⇒ empty p[1])
         blockedByMe.clear();
         if (p.length >= 2 && p[1] != null && !p[1].isEmpty()) {
             for (String name : p[1].split(",")) {
@@ -2025,7 +1889,6 @@ public class ChatController {
         renderCurrentTab();
     }
 
-    // ─── Leave group ─────────────────────────────────────────────
     private void handleGroupLeft(String[] p) {
         if (p.length < 2) return;
         int gid; try { gid = Integer.parseInt(p[1]); } catch (NumberFormatException e) { return; }
@@ -2041,7 +1904,6 @@ public class ChatController {
         renderCurrentTab();
     }
 
-    // ─── Join-meeting banner ─────────────────────────────────────
     private void showJoinMeetingBanner(int gid, String type, int participants) {
         if (joinMeetingBanner == null) return;
         joinMeetingBanner.setUserData(new int[]{ gid, "video".equalsIgnoreCase(type) ? 1 : 0 });
@@ -2093,16 +1955,13 @@ public class ChatController {
             client.send("GROUP_CALL_START|" + gid + "|" + (isVideo ? "VIDEO" : "AUDIO") + "|"
                     + GROUP_AUDIO_PORT + "|" + GROUP_VIDEO_PORT + "|" + server.clientAPP.getLocalIp());
         }
-        // In both cases we follow up with JOIN so the server tracks our address/ports.
         client.send("GROUP_CALL_JOIN|" + gid + "|" + GROUP_AUDIO_PORT + "|" + GROUP_VIDEO_PORT
                 + "|" + server.clientAPP.getLocalIp());
         showCallBanner("In " + (isVideo ? "video" : "audio") + " meeting · " + groupName);
         updateCallButtons();
     }
 
-    // ─── Call history (sidebar tab) ───────────────────────────────
     private void handleCallHistory(String[] p, String raw) {
-        // CALL_HISTORY|id|caller|other|type|status|duration|startedAt|isGroup
         String[] f = raw.split("\\|", 9);
         if (f.length < 9) return;
         try {
@@ -2115,13 +1974,11 @@ public class ChatController {
             e.duration  = Integer.parseInt(f[6]);
             e.startedAt = f[7];
             e.isGroup   = "1".equals(f[8]);
-            // Skip duplicates that arrived in this batch.
             callsHistory.removeIf(x -> x.id == e.id);
             callsHistory.add(e);
         } catch (Exception ignored) {}
     }
 
-    // ─── Info dialog ──────────────────────────────────────────────
     @FXML
     private void onShowInfo() {
         if (activeTarget == null) { showInfo("Select a conversation first."); return; }
@@ -2129,7 +1986,6 @@ public class ChatController {
 
         User u = userDAO.getByUsername(activeTarget.contact.username);
         if (u == null) { showInfo("User not found."); return; }
-        // The name they chose at registration (fallback to the number).
         String chosenName = (u.getDisplayName() != null && !u.getDisplayName().isBlank())
                 ? u.getDisplayName().trim() : u.getUsername();
 
@@ -2169,7 +2025,6 @@ public class ChatController {
         dialog.showAndWait();
     }
 
-    // ─── Contact helpers ──────────────────────────────────────────
     private void ensureContactVisible(String username) {
         if (username == null || username.isBlank()) return;
         String normalized = username.trim();
@@ -2181,8 +2036,6 @@ public class ChatController {
                 return;
             }
         }
-        // Make the conversation visible WITHOUT silently saving the contact:
-        // a non-contact sender triggers the "add to contacts?" prompt instead.
         User sender = userDAO.getByUsername(normalized);
         Contact c;
         if (sender != null) {
@@ -2197,18 +2050,13 @@ public class ChatController {
         renderCurrentTab();
     }
 
-    /**
-     * If a message arrives from someone who is NOT already a saved contact,
-     * ask once (per session) whether to add them. If they're already a
-     * contact, this is a no-op (no popup).
-     */
     private void maybePromptAddContact(String fromUsername) {
         if (fromUsername == null || fromUsername.isBlank() || currentUserId <= 0) return;
         String key = fromUsername.trim().toLowerCase();
-        if (contactAddPrompted.contains(key)) return;          // already asked this session
+        if (contactAddPrompted.contains(key)) return;
         User sender = userDAO.getByUsername(fromUsername.trim());
-        if (sender == null) return;                            // unknown account
-        if (contactDAO.exists(currentUserId, sender.getId())) return;  // already a contact
+        if (sender == null) return;
+        if (contactDAO.exists(currentUserId, sender.getId())) return;
         contactAddPrompted.add(key);
 
         Runnable ask = () -> {
@@ -2257,7 +2105,6 @@ public class ChatController {
         return null;
     }
 
-    // ─── Add contact / profile / logout ───────────────────────────
     @FXML
     private void onAddContact() {
         if (currentUserId <= 0) { showInfo("Unable to add contact."); return; }
@@ -2274,8 +2121,6 @@ public class ChatController {
             User target = userDAO.getByUsername(username);
             if (target == null) { showInfo("User not found: " + username); return; }
 
-            // Ask for the name to show instead of the number (defaults to the
-            // name the contact chose at registration, if any).
             TextInputDialog nameDlg = new TextInputDialog(
                     target.getDisplayName() == null ? "" : target.getDisplayName());
             nameDlg.setTitle("Add Contact");
@@ -2368,9 +2213,7 @@ public class ChatController {
         return services.ImageUtil.compressAvatar(source);
     }
 
-    /** Cap on attachments so a single packet still fits in MEDIUMTEXT and the
-     *  read line buffers on the other end stay manageable. */
-    private static final long MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024; // 3 MB
+    private static final long MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024;
 
     @FXML
     private void onSendImage() {
@@ -2400,8 +2243,6 @@ public class ChatController {
         if (!recordingAudio) startAudioRecording(); else stopAudioRecordingAndSend();
     }
 
-    /** Dispatches a chosen file (image / file / voice note) to the active
-     *  target — works for both private conversations and groups. */
     private void sendMediaToActiveTarget(File file, String mediaType) {
         if (file.length() > MAX_ATTACHMENT_BYTES) {
             showInfo("File too large (max " + (MAX_ATTACHMENT_BYTES / (1024 * 1024)) + " MB).");
@@ -2480,7 +2321,6 @@ public class ChatController {
 
     private static String prettyTime(String iso) {
         if (iso == null || iso.isEmpty()) return "";
-        // Show the part after "T" plus the date if old enough.
         int tIdx = iso.indexOf('T');
         if (tIdx < 0) return iso;
         String date = iso.substring(0, tIdx);

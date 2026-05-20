@@ -25,7 +25,7 @@ public class VerifyController {
         String devCode = SceneManager.getPendingDevCode();
         if (devCode != null && !devCode.isBlank()) {
             infoLabel.setText("Dev mode (no SMS): your code for " + phone + " is " + devCode);
-            codeField.setText(devCode);   // pre-filled so the user can just click Verify
+            codeField.setText(devCode);
         } else {
             infoLabel.setText("We sent a 6-digit code to " + phone + ".");
         }
@@ -72,9 +72,6 @@ public class VerifyController {
         errorLabel.setText(response);
     }
 
-    /** After the code is verified, apply the name/picture chosen during
-     *  registration. The name is also stored server-side at account creation;
-     *  this also persists the avatar (kept client-side, like Edit Profile). */
     private void applyPendingRegistration() {
         try {
             String  name = SceneManager.getPendingRegName();

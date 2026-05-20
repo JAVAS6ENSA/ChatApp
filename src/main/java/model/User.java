@@ -4,17 +4,17 @@ public class User {
 
     private int     id;
     private String  username;
-    private String  phone;       // login identity (E.164); replaces email
-    private String  status;      // online / offline / away
+    private String  phone;
+    private String  status;
     private boolean isBlocked;
-    private String  role;        // user / admin
+    private String  role;
 
     // ── Profile attributes ───────────────────────────────────────────────
-    private String  displayName;     // public self-chosen name (set at registration, editable)
-    private String  joinDate;        // date when the user registered
-    private String  bio;             // short description shown in profile
-    private String  profilePicture;  // legacy: file path or URL to the avatar
-    private byte[]  profilePictureData; // raw image bytes (portable across machines)
+    private String  displayName;
+    private String  joinDate;
+    private String  bio;
+    private String  profilePicture;
+    private byte[]  profilePictureData;
 
     // Constructeur complet (lecture BDD)
     public User(int id, String username, String phone,

@@ -5,21 +5,11 @@ import java.sql.*;
 
 public class compteDAO {
 
-    /**
-     * Create a passwordless account from a phone number.
-     * The internal username defaults to the phone number (the rest of the app
-     * keys everything on username); users can give each other private aliases.
-     *
-     * @return true on success, false if the phone is already registered.
-     */
+
     public static boolean registerPhone(String phone) {
         return registerPhone(phone, "");
     }
 
-    /**
-     * Same as {@link #registerPhone(String)} but also stores the public
-     * display name the user chose on the registration screen.
-     */
     public static boolean registerPhone(String phone, String displayName) {
         Connection conn = DBConnection.getInstance();
         if (conn == null) return false;
@@ -47,7 +37,7 @@ public class compteDAO {
                     long id = keys.getLong(1);
                     try (PreparedStatement psUser = conn.prepareStatement(sqlUser)) {
                         psUser.setLong(1, id);
-                        psUser.setString(2, phone);   // username == phone by default
+                        psUser.setString(2, phone);
                         psUser.setString(3, safeName);
                         psUser.executeUpdate();
                     }
@@ -72,7 +62,7 @@ public class compteDAO {
             return ps.executeQuery().next();
         } catch (SQLException e) {
             e.printStackTrace();
-            return true; // fail safe: treat as existing so we don't double-insert
+            return true;
         }
     }
 }

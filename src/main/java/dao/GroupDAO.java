@@ -7,7 +7,6 @@ import java.util.*;
 
 public class GroupDAO {
 
-    /** Create a new group and make the creator an admin. Returns generated id, or -1. */
     public int createGroup(String name, int createdBy) {
         Connection cx = DBConnection.getInstance();
         String sql = "INSERT INTO `groups` (name, created_by) VALUES (?, ?)";
@@ -96,7 +95,6 @@ public class GroupDAO {
         }
     }
 
-    /** Returns member ids in admin-first / username order. */
     public List<int[]> getMembersWithAdminFlag(int groupId) {
         List<int[]> rows = new ArrayList<>();
         String sql = "SELECT gm.user_id, gm.is_admin " +
@@ -130,7 +128,7 @@ public class GroupDAO {
         }
     }
 
-    /** Fully-loaded groups (with members + admins) the given user belongs to. */
+
     public List<Group> getUserGroups(int userId) {
         List<Group> groups = new ArrayList<>();
         String sql = "SELECT g.* FROM `groups` g " +

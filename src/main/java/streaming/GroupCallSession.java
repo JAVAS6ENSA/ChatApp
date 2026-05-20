@@ -41,18 +41,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Multi-participant audio/video meeting (full mesh).
- *
- * Each participant binds one local audio port and one local video port and
- * sends a copy of their captured stream to every other known peer. Receivers
- * mix audio at the OS layer by simply writing each incoming packet to the
- * speakers, and paint each peer's video into its own tile.
- *
- * Resources are released as soon as {@link #leave()} is called: cameras, mic
- * lines, UDP sockets, animation timelines, and the call window are all torn
- * down so a subsequent meeting can reuse the ports.
- */
 public class GroupCallSession {
 
     public static class Peer {
@@ -92,11 +80,10 @@ public class GroupCallSession {
     private Label durationLabel;
     private FlowPane participantTiles;
     private Map<String, StackPane> tileByPeer = new HashMap<>();
-    private ImageView selfVideoTile;     // live local-camera tile (video meetings only)
+    private ImageView selfVideoTile;
     private Timeline durationTimer;
     private long callStartMillis;
     private Runnable onEnd;
-    /** username(phone) → human label. Defaults to identity (shows the number). */
     private java.util.function.Function<String, String> nameResolver = u -> u;
 
     public void setNameResolver(java.util.function.Function<String, String> r) {
@@ -168,8 +155,6 @@ public class GroupCallSession {
             try { onEnd.run(); } catch (Exception ignored) {}
         }
     }
-
-    // ─── UI ──────────────────────────────────────────────────────
 
     private void buildWindow() {
         callStage = new Stage();
@@ -252,8 +237,6 @@ public class GroupCallSession {
         participantTiles.getChildren().clear();
         tileByPeer.clear();
 
-        // Self tile: in audio meetings the avatar circle; in video meetings a
-        // live preview of the local camera so the user can frame themselves.
         if (isVideo) {
             selfVideoTile = new ImageView();
             selfVideoTile.setFitWidth(220);
@@ -319,8 +302,6 @@ public class GroupCallSession {
                 "-fx-cursor: hand;");
     }
 
-    // ─── Audio ────────────────────────────────────────────────────
-
     private void audioSenderLoop() {
         DataLine.Info info = new DataLine.Info(TargetDataLine.class, AUDIO_FORMAT);
         TargetDataLine mic;
@@ -371,8 +352,6 @@ public class GroupCallSession {
         }
     }
 
-    // ─── Video ────────────────────────────────────────────────────
-
     private void videoSenderLoop() {
         FrameGrabber grabber = openCamera();
         if (grabber == null) {
@@ -392,8 +371,6 @@ public class GroupCallSession {
                 byte[] data = baos.toByteArray();
                 if (data.length >= 60000) continue;
 
-                // Local self-view: reuse the JPEG we already encoded for the
-                // outgoing packets so the camera never gets read twice.
                 if (selfVideoTile != null) {
                     Image fxImg = new Image(new ByteArrayInputStream(data));
                     Platform.runLater(() -> selfVideoTile.setImage(fxImg));
@@ -438,7 +415,6 @@ public class GroupCallSession {
         for (Peer p : peers.values()) {
             if (p.address != null && p.address.equals(addr)) return p.username;
         }
-        // Fallback: same host, only one other peer → assume it's them.
         if (peers.size() == 1) return peers.keySet().iterator().next();
         return null;
     }

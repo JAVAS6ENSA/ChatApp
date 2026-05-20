@@ -7,11 +7,7 @@ import javafx.scene.control.DialogPane;
 import javafx.stage.Stage;
 import server.clientAPP;
 
-/**
- * Single source of truth for the active stage, the logged-in session, and
- * the chosen UI theme. The theme is sticky for the JVM lifetime so it
- * survives scene switches (login → chat) without flicker.
- */
+
 public class SceneManager {
 
     public enum Theme { LIGHT, DARK }
@@ -46,7 +42,6 @@ public class SceneManager {
         primaryStage.show();
     }
 
-    /** Apply the current theme's stylesheets to an arbitrary scene. */
     public static void applyTheme(Scene scene) {
         scene.getStylesheets().clear();
         scene.getStylesheets().add(SceneManager.class.getResource("/app-dark.css").toExternalForm());
@@ -55,7 +50,6 @@ public class SceneManager {
         }
     }
 
-    /** Apply the current theme to a popup dialog so it doesn't flash in default styling. */
     public static void applyTheme(DialogPane pane) {
         try {
             pane.getStylesheets().clear();
@@ -93,13 +87,10 @@ public class SceneManager {
         switchTo("chat.fxml");
     }
 
-    /** Hand the phone + connected client to the OTP screen. */
     public static void switchToVerify(String phone, clientAPP client) {
         switchToVerify(phone, client, null, null, null);
     }
 
-    /** Registration variant: also carries the chosen name/picture (applied
-     *  after the code is verified) and, in OTP dev mode, the code to show. */
     public static void switchToVerify(String phone, clientAPP client,
                                       String devCode, String regName, byte[] regPic) {
         pendingPhone   = phone;

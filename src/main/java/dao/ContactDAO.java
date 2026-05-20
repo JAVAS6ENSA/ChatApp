@@ -6,10 +6,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Simple DAO that manages the relationship "user -> contacts".
- * Each user only sees the contacts he/she has added.
- */
+
 public class ContactDAO {
 
     // Add a new contact for the current user
@@ -26,7 +23,7 @@ public class ContactDAO {
         }
     }
 
-    // Remove a contact from the current user's list
+
     public boolean removeContact(int userId, int contactId) {
         String sql = "DELETE FROM contacts WHERE user_id=? AND contact_id=?";
         try (PreparedStatement ps = DBConnection.getInstance().prepareStatement(sql)) {
@@ -39,7 +36,7 @@ public class ContactDAO {
         }
     }
 
-    // Set (or clear, when alias is null/empty) the private name for a contact
+
     public boolean renameContact(int userId, int contactId, String alias) {
         String sql = "UPDATE contacts SET alias = ? WHERE user_id = ? AND contact_id = ?";
         try (PreparedStatement ps = DBConnection.getInstance().prepareStatement(sql)) {
@@ -54,7 +51,7 @@ public class ContactDAO {
         }
     }
 
-    // Get the contacts of a given user (only the ones he added)
+
     public List<Contact> getContacts(int userId) {
         List<Contact> list = new ArrayList<>();
         String sql = "SELECT u.id, u.username, u.status, u.is_blocked, u.display_name, c.alias, c.added_at " +
@@ -84,7 +81,7 @@ public class ContactDAO {
         return list;
     }
 
-    // Check if a contact already exists
+
     public boolean exists(int userId, int contactId) {
         String sql = "SELECT 1 FROM contacts WHERE user_id=? AND contact_id=?";
         try (PreparedStatement ps = DBConnection.getInstance().prepareStatement(sql)) {

@@ -6,13 +6,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Per-user block list. "blocker_id has blocked blocked_id" means:
- *   - blocked_id's messages should not reach blocker_id
- *   - blocker_id's UI greys out blocked_id and disables messaging
- *
- * Separate from `users.is_blocked`, which is the global admin flag.
- */
+
 public class BlockDAO {
 
     public boolean block(int blockerId, int blockedId) {
@@ -54,7 +48,6 @@ public class BlockDAO {
         }
     }
 
-    /** Returns the usernames the given user has blocked. */
     public List<String> listBlockedUsernames(int blockerId) {
         List<String> out = new ArrayList<>();
         String sql = "SELECT u.username FROM blocked_users b JOIN users u ON u.id = b.blocked_id " +

@@ -6,9 +6,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public class DBConnection {
-    // Client and server connect to the same EC2-hosted DB over the network as
-    // a non-root user scoped to chat_app only. DB_URL / DB_USER / DB_PASSWORD
-    // env vars override these (e.g. for local dev or an SSH tunnel).
+
     private static final String URL = buildUrl();
     private static final String USER =
             System.getenv().getOrDefault("DB_USER", "chatapp");
@@ -18,8 +16,6 @@ public class DBConnection {
     private static String buildUrl() {
         String base = System.getenv().getOrDefault("DB_URL",
                 "jdbc:mariadb://15.236.189.148:3306/chat_app");
-        // Fail fast instead of hanging the caller (e.g. the JavaFX UI thread)
-        // for minutes when the host is unreachable.
         String sep = base.contains("?") ? "&" : "?";
         return base + sep + "connectTimeout=4000&socketTimeout=15000";
     }
@@ -41,9 +37,6 @@ public class DBConnection {
         return instance;
     }
 
-    /** Idempotent, run-once schema top-ups so existing databases pick up new
-     *  columns without a manual migration. Safe to call on every fresh
-     *  connection: ADD COLUMN IF NOT EXISTS is a no-op once applied. */
     private static void ensureSchema(Connection conn) {
         String[] migrations = {
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(60) NOT NULL DEFAULT ''"

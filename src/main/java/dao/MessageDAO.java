@@ -164,8 +164,7 @@ public class MessageDAO {
         Timestamp ts = rs.getTimestamp("DATE_Msg");
         if (ts != null) m.setDateMsg(ts.toLocalDateTime());
 
-        // New columns — wrapped in try/catch so older DBs (no migration yet)
-        // still read the legacy schema without blowing up.
+
         try {
             long cmid = rs.getLong("client_mid");
             if (!rs.wasNull()) m.setClientMid(cmid);

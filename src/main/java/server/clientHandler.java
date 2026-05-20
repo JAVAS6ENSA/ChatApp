@@ -30,8 +30,6 @@ public class clientHandler implements Runnable {
     private String phone = null;
     private String role = null;
     private long start ;
-    // The latest 1:1 call row id this user is involved in (caller side).
-    // Used to update the row when the call ends/cancels/refuses.
     private int currentCallRowId = -1;
 
     public clientHandler(Socket socket,
@@ -44,7 +42,6 @@ public class clientHandler implements Runnable {
         this.groupCallManager = groupCallManager;
     }
 
-    // Legacy 3-arg constructor for compatibility.
     public clientHandler(Socket socket, SessionManager sManager, AppelManager appelManager) {
         this(socket, sManager, appelManager, new GroupCallManager());
     }
@@ -77,9 +74,6 @@ public class clientHandler implements Runnable {
 
         //TODO REFACTOR THIS PART AS IT IS REDUNDANT
 
-        // Persis t the call row immediately as "ongoing"; we'll patch status on
-        // end / refuse / cancel / miss. This guarantees the row exists even if
-        // the caller crashes mid-call.
         try {
             UserDAO udao = new UserDAO();
             User me = udao.getByUsername(username);
@@ -131,7 +125,6 @@ public class clientHandler implements Runnable {
         starter.envoyerAuClient("CALL_ACCEPTED|" + username + "|" + recepteurIp + "|" + portUdp);
     }
 
-    // CALL_READY|port  (sent by the caller after receiving CALL_ACCEPTED)
     private void traiterCallerReady(String[] parts) throws Exception {
         if (username == null) { envoyerAuClient("ERROR|Non authentifié"); throw new Exception(); }
         if (parts.length < 2) { envoyerAuClient("ERROR|Format CALL_READY|port"); throw new IncorrectFormat(); }
@@ -165,10 +158,6 @@ public class clientHandler implements Runnable {
         //on a toujours cette condition verifié maintenant car j ai besoin d implementer le turn server
 
 
-        // START_AUDIO carries the *peer's username* so the client never has to
-        // guess from local state (which is the bug that produced "Peer" labels).
-        // audioIpFor*: same-NAT (same WiFi) peers get each other's LAN IP since
-        // public→public can't hairpin; true remote peers get the public IP.
         start = sessionStartMs(session);
         envoyerAuClient("START_AUDIO|" + session.audioIpForAppelant() + "|" + session.getPortRecepteur()
                 + "|" + session.getRecepteur().getUsername());
@@ -219,7 +208,6 @@ public class clientHandler implements Runnable {
         }
     }
 
-    // CALL_END — either side hangs up an established call.
     private void traiterFinAppel(String[] parts) throws Exception {
         if (username == null) { envoyerAuClient("ERROR|Non authentifié"); throw new Exception(); }
         SessionAppel session = appelManager.getAppelByUser(username);
@@ -237,7 +225,6 @@ public class clientHandler implements Runnable {
         boolean ended = appelManager.terminerAppel(username);
         if (otherHandler != null) {
             if (wasRinging && session.getRecepteur().getUsername().equals(other)) {
-                // Caller hung up while ringing → recipient sees cancellation.
                 otherHandler.envoyerAuClient("CALL_CANCELLED|" + username);
             } else {
                 otherHandler.envoyerAuClient("CALL_ENDED|" + username);
@@ -245,7 +232,6 @@ public class clientHandler implements Runnable {
         }
         envoyerAuClient("CALL_END_OK|" + other);
 
-        // Patch the calls row: cancelled if it never connected, ended otherwise.
         clientHandler callerHandler = SessionManager.getHandler(session.getAppelant().getUsername());
         int rowId = callerHandler != null ? callerHandler.currentCallRowId : -1;
         if (rowId > 0) {
@@ -256,16 +242,9 @@ public class clientHandler implements Runnable {
     }
 
     private long sessionStartMs(SessionAppel s) {
-        // Approx: we don't keep a started_at in the session, fall back to "now"
-        // which yields duration=0 for ringing-cancellations (correct).
         return System.currentTimeMillis();
     }
 
-    // ───────────────────────────────────────────────────────────
-    //  Auth / login / register
-    // ───────────────────────────────────────────────────────────
-
-    // Passwordless auth: register/login both go phone -> SMS code -> verify.
     private static final services.OtpService OTP =
             new services.OtpService(new services.TwilioSmsSender());
 
@@ -276,7 +255,6 @@ public class clientHandler implements Runnable {
         return p.matches("\\+?[0-9]{8,15}");
     }
 
-    // REQUEST_OTP|<phone> — ask for a login code (account must already exist)
     private void demanderOtp(String[] parts) throws IncorrectFormat {
         if (parts.length < 2) { envoyerAuClient("ERROR|Format REQUEST_OTP|phone"); throw new IncorrectFormat(); }
         String phone = normalizePhone(parts[1].trim());
@@ -287,8 +265,6 @@ public class clientHandler implements Runnable {
         envoyerAuClient(otpSentResponse(phone));
     }
 
-    /** Build the REQUEST/REGISTER reply. In OTP dev mode the code is appended
-     *  ("OTP_SENT|<phone>|DEV|<code>") so the client can show it directly. */
     private static String otpSentResponse(String phone) {
         if (!OTP.sendCode(phone)) return "Erreur: impossible d'envoyer le code SMS";
         if (OTP.devMode()) {
@@ -298,7 +274,6 @@ public class clientHandler implements Runnable {
         return "OTP_SENT|" + phone;
     }
 
-    // VERIFY_OTP|<phone>|<code> — finish login: validate the code, open session
     private void verifierOtp(String[] parts) throws IncorrectFormat {
         if (parts.length < 3) { envoyerAuClient("ERROR|Format VERIFY_OTP|phone|code"); throw new IncorrectFormat(); }
         String phone = normalizePhone(parts[1].trim());
@@ -321,7 +296,6 @@ public class clientHandler implements Runnable {
         etablirSession(userDAO, result);
     }
 
-    /** Common post-authentication wiring (was the tail of the old login). */
     private void etablirSession(UserDAO userDAO, User result) {
         String uname = result.getUsername();
         if (SessionManager.isOnline(uname)) {
@@ -362,9 +336,6 @@ public class clientHandler implements Runnable {
                 User sender = userDAO.getById(m.getSenderId());
                 if (sender == null) continue;
                 String content = m.getContent() == null ? "" : m.getContent();
-                // Carry the stable client MID on the inbox push too (live and
-                // HISTORY already do). Without it the receiver stores the same
-                // message under a fresh currentMillis key and shows it twice.
                 String midPart = m.getClientMid() == null ? "" : "MID:" + m.getClientMid() + "|";
                 envoyerAuClient("PRIVATE|" + sender.getUsername() + "|" + currentUser.getUsername() + "|" + midPart + content);
                 messageDAO.updateStatus(m.getId(), "delivered");
@@ -383,7 +354,6 @@ public class clientHandler implements Runnable {
         }
     }
 
-    /** Send the user's group list (so the UI can populate Groups tab on login). */
     private void pousserGroupesAuLogin(User u) {
         try {
             envoyerListeGroupes(u.getId());
@@ -392,7 +362,6 @@ public class clientHandler implements Runnable {
         }
     }
 
-    // REGISTER_PHONE|<phone> — create the account then text a verification code
     private void Inscrire(String[] parts) throws IncorrectFormat {
         if (parts.length < 2) { envoyerAuClient("ERROR|Format REGISTER_PHONE|phone"); throw new IncorrectFormat(); }
         String phone = normalizePhone(parts[1].trim());
@@ -407,7 +376,6 @@ public class clientHandler implements Runnable {
         envoyerAuClient(otpSentResponse(phone));
     }
 
-    // RENAME_CONTACT|<contactUsername>|<alias> — private name for a contact
     private void renommerContact(String[] parts) throws IncorrectFormat {
         if (parts.length < 2) { envoyerAuClient("ERROR|Format RENAME_CONTACT|contact|alias"); throw new IncorrectFormat(); }
         if (username == null) { envoyerAuClient("ERROR|Non authentifie"); return; }
@@ -428,7 +396,6 @@ public class clientHandler implements Runnable {
             return;
         }
 
-            // End any ongoing 1:1 call cleanly.
             try {
                 SessionAppel s = appelManager.getAppelByUser(username);
                 if (s != null) {
@@ -450,7 +417,6 @@ public class clientHandler implements Runnable {
                 }
             } catch (Exception ignored) {}
 
-        // Drop from any active group meeting.
         try {
             UserDAO udao = new UserDAO();
             User me = udao.getByUsername(username);
@@ -487,10 +453,6 @@ public class clientHandler implements Runnable {
         envoyerAuClient("Currently online: " + String.join(",", SessionManager.getOnlineUsers()));
     }
 
-    // ───────────────────────────────────────────────────────────
-    //  Private messaging
-    // ───────────────────────────────────────────────────────────
-
     private void envoyerMessagePrive(String[] parts) throws IncorrectFormat {
         if (parts.length < 4) { envoyerAuClient("ERROR|Format incorrect"); throw new IncorrectFormat(); }
         if (username == null) return;
@@ -516,9 +478,6 @@ public class clientHandler implements Runnable {
         User sender = udao.getByUsername(username);
         User receiver = udao.getByUsername(targetName);
 
-        // Per-user block enforcement. If the recipient has blocked the sender,
-        // the message is silently dropped server-side and the sender gets a
-        // BLOCKED notice so its UI can stop showing optimistic ticks.
         if (sender != null && receiver != null
                 && new BlockDAO().isBlocked(receiver.getId(), sender.getId())) {
             if (midRaw != null) envoyerAuClient("BLOCKED|" + targetName + "|" + midRaw);
@@ -537,8 +496,6 @@ public class clientHandler implements Runnable {
             System.err.println("Persist message failed: " + e.getMessage());
         }
 
-        // Echo the MID to the recipient so it can address the message later
-        // (edit / delete). Format stays backward-compatible: MID:<n>|<content>.
         String wireContent = midRaw == null ? content : "MID:" + midRaw + "|" + content;
 
         clientHandler target = SessionManager.getHandler(targetName);
@@ -553,7 +510,6 @@ public class clientHandler implements Runnable {
         }
     }
 
-    // TYPING|<to>   — 1:1 typing notification, forwarded to the recipient.
     private void traiterTypingPrive(String[] parts) {
         if (username == null || parts.length < 2) return;
         String target = parts[1].trim();
@@ -562,7 +518,6 @@ public class clientHandler implements Runnable {
         if (peer != null) peer.envoyerAuClient("TYPING|" + username);
     }
 
-    // HISTORY|otherUsername
     private void traiterHistorique(String[] parts) {
         if (username == null) { envoyerAuClient("ERROR|Non authentifié"); return; }
         if (parts.length < 2) { envoyerAuClient("ERROR|Format HISTORY|user"); return; }
@@ -574,8 +529,6 @@ public class clientHandler implements Runnable {
         List<Message> msgs = new MessageDAO().getConversation(me.getId(), other.getId());
         for (Message m : msgs) {
             String sender = (m.getSenderId() == me.getId()) ? username : otherName;
-            // Tombstone deleted messages on the wire so clients display the
-            // placeholder without exposing the original payload.
             String safe;
             if (m.isDeleted()) safe = "[message deleted]";
             else               safe = m.getContent() == null ? "" : m.getContent().replace("\n", " ");
@@ -585,10 +538,6 @@ public class clientHandler implements Runnable {
         }
         envoyerAuClient("HISTORY_END|" + otherName);
     }
-
-    // ───────────────────────────────────────────────────────────
-    //  Groups: create / list / manage / message / typing
-    // ───────────────────────────────────────────────────────────
 
     private void envoyerListeGroupes(int userId) {
         List<Group> groups = new GroupDAO().getUserGroups(userId);
@@ -613,7 +562,6 @@ public class clientHandler implements Runnable {
         envoyerAuClient("GROUP_INFO|" + g.getId() + "|" + g.getName() + "|" + members + "|" + admins);
     }
 
-    // GROUP_CREATE|name|members(comma)|admins(comma)
     private void traiterCreationGroupe(String[] parts) {
         if (username == null) { envoyerAuClient("ERROR|Non authentifié"); return; }
         if (parts.length < 3) { envoyerAuClient("ERROR|Format GROUP_CREATE|name|members|admins"); return; }
@@ -634,7 +582,6 @@ public class clientHandler implements Runnable {
         Set<String> adminNames = new HashSet<>();
         for (String a : adminArr) if (!a.isBlank()) adminNames.add(a.trim().toLowerCase());
 
-        // Always include the creator as an admin.
         adminNames.add(username.toLowerCase());
 
         Set<String> seen = new HashSet<>();
@@ -646,7 +593,6 @@ public class clientHandler implements Runnable {
             if (u == null) continue;
             gdao.addMember(gid, u.getId(), adminNames.contains(mn.toLowerCase()));
         }
-        // In case any explicit admin wasn't in the members list, add them.
         for (String an : adminNames) {
             if (an.equalsIgnoreCase(username)) continue;
             User u = udao.getByUsername(an);
@@ -658,7 +604,6 @@ public class clientHandler implements Runnable {
         Group g = gdao.getGroup(gid);
         if (g == null) return;
 
-        // Tell every (online) member about the new group.
         for (Integer memberId : g.getMemberIds()) {
             User u = udao.getById(memberId);
             if (u == null) continue;
@@ -674,7 +619,6 @@ public class clientHandler implements Runnable {
         envoyerListeGroupes(me.getId());
     }
 
-    // GROUP_HISTORY|groupId
     private void traiterHistoriqueGroupe(String[] parts) {
         if (username == null) { envoyerAuClient("ERROR|Non authentifié"); return; }
         if (parts.length < 2) { envoyerAuClient("ERROR|Format GROUP_HISTORY|groupId"); return; }
@@ -693,8 +637,6 @@ public class clientHandler implements Runnable {
         for (Message m : msgs) {
             User sender = udao.getById(m.getSenderId());
             String senderName = sender == null ? "?" : sender.getUsername();
-            // Deleted messages still appear so other clients can stay in sync
-            // — but with a tombstone payload, not the original content.
             String safe;
             String typeOut = m.getType() == null ? "TEXT" : m.getType();
             if (m.isDeleted()) {
@@ -711,12 +653,8 @@ public class clientHandler implements Runnable {
         envoyerAuClient("GROUP_HISTORY_END|" + gid);
     }
 
-    // GROUP_MSG|groupId|MID:mid|content
-    // OR     GROUP_MSG|groupId|MID:mid|TYPE:SYSTEM|content
     private void traiterMessageGroupe(String[] parts, String raw) {
         if (username == null) { envoyerAuClient("ERROR|Non authentifié"); return; }
-        // We split with limit 4 in the dispatcher, so parts[3] still contains
-        // the rest. Re-parse to extract the MID prefix robustly.
         if (parts.length < 4) { envoyerAuClient("ERROR|Format GROUP_MSG|gid|MID:n|content"); return; }
         int gid;
         try { gid = Integer.parseInt(parts[1].trim()); }
@@ -747,9 +685,6 @@ public class clientHandler implements Runnable {
         if (me == null) return;
         if (!gdao.isMember(gid, me.getId())) { envoyerAuClient("ERROR|Non membre du groupe"); return; }
 
-        // Derive a richer DB type from the payload so the messages table tells
-        // us what's actually inside each group message ("IMAGE", "AUDIO", "FILE")
-        // even though the wire still carries TEXT-with-MEDIA_MSG-embed.
         String storedType = msgType;
         if ("TEXT".equalsIgnoreCase(msgType) && content != null && content.startsWith("MEDIA_MSG|")) {
             String[] f = content.split("\\|", 6);
@@ -772,9 +707,6 @@ public class clientHandler implements Runnable {
             new MessageDAO().saveMessage(toSave);
         } catch (Exception ignored) {}
 
-        // Broadcast to every member that is online (sender uses it as ACK).
-        // MID is echoed so each receiver can address the message for later
-        // edit / delete operations.
         String midPart = mid == null ? "" : "MID:" + mid + "|";
         for (Integer memberId : gdao.getMembers(gid)) {
             User u = udao.getById(memberId);
@@ -786,7 +718,6 @@ public class clientHandler implements Runnable {
         if (mid != null) envoyerAuClient("GROUP_MSG_STATUS|" + gid + "|" + mid + "|delivered");
     }
 
-    // GROUP_TYPING|gid
     private void traiterTypingGroupe(String[] parts) {
         if (username == null || parts.length < 2) return;
         int gid;
@@ -801,7 +732,6 @@ public class clientHandler implements Runnable {
         }
     }
 
-    // GROUP_ADD_MEMBER|gid|username, GROUP_REMOVE_MEMBER, GROUP_PROMOTE, GROUP_DEMOTE
     private void traiterMembreGroupe(String action, String[] parts) {
         if (username == null) { envoyerAuClient("ERROR|Non authentifié"); return; }
         if (parts.length < 3) { envoyerAuClient("ERROR|Format incorrect"); return; }
@@ -829,29 +759,21 @@ public class clientHandler implements Runnable {
         Group g = gdao.getGroup(gid);
         if (g == null) return;
 
-        // Re-broadcast group info to every online member so each client view is in sync.
         for (Integer memberId : g.getMemberIds()) {
             User u = udao.getById(memberId);
             if (u == null) continue;
             clientHandler ch = SessionManager.getHandler(u.getUsername());
             if (ch != null) ch.envoyerInfoGroupe(g, udao);
         }
-        // If we just removed someone, tell them too so they can drop the group locally.
         if ("REMOVE".equals(action)) {
             clientHandler ch = SessionManager.getHandler(target.getUsername());
             if (ch != null) ch.envoyerAuClient("GROUP_REMOVED|" + gid);
         }
     }
 
-    // ───────────────────────────────────────────────────────────
-    //  Group calls (meetings)
-    // ───────────────────────────────────────────────────────────
-
-    // GROUP_CALL_START|gid|TYPE|audioPort|videoPort
     private void traiterDemarrageMeeting(String[] parts) {
         if (username == null) { envoyerAuClient("ERROR|Non authentifié"); return; }
         if (parts.length < 4) { envoyerAuClient("ERROR|Format GROUP_CALL_START|gid|TYPE|aPort|vPort"); return; }
-        // The dispatcher used split-limit=4, so parts[3] still holds "aPort|vPort".
         String[] tail = parts[3].split("\\|");
         if (tail.length < 2) { envoyerAuClient("ERROR|Format GROUP_CALL_START|gid|TYPE|aPort|vPort"); return; }
         int gid;
@@ -871,7 +793,6 @@ public class clientHandler implements Runnable {
 
         GroupCallManager.Meeting existing = groupCallManager.getMeeting(gid);
         if (existing != null) {
-            // Already in progress — just invite this user to join (handled by GROUP_CALL_JOIN).
             envoyerAuClient("GROUP_CALL_ACTIVE|" + gid + "|" + existing.type);
             return;
         }
@@ -880,7 +801,6 @@ public class clientHandler implements Runnable {
         meeting.participants.put(username,
                 new GroupCallManager.Participant(username, getIpAddress(), lanIp, audioPort, videoPort));
 
-        // Notify every other member: "incoming meeting".
         for (Integer memberId : gdao.getMembers(gid)) {
             User u = udao.getById(memberId);
             if (u == null || u.getUsername().equalsIgnoreCase(username)) continue;
@@ -892,7 +812,6 @@ public class clientHandler implements Runnable {
         envoyerAuClient("GROUP_CALL_STARTED|" + gid + "|" + type);
     }
 
-    // GROUP_CALL_JOIN|gid|audioPort|videoPort
     private void traiterJoinMeeting(String[] parts) {
         if (username == null) return;
         if (parts.length < 4) { envoyerAuClient("ERROR|Format GROUP_CALL_JOIN|gid|aPort|vPort"); return; }
@@ -902,7 +821,6 @@ public class clientHandler implements Runnable {
         try {
             gid = Integer.parseInt(parts[1].trim());
             audioPort = Integer.parseInt(parts[2].trim());
-            // Dispatcher split-limit=4, so parts[3] holds "vPort[|lanIp]".
             String[] vtail = parts[3].split("\\|");
             videoPort = Integer.parseInt(vtail[0].trim());
             if (vtail.length >= 2 && !vtail[1].trim().isEmpty()) lanIp = vtail[1].trim();
@@ -916,7 +834,6 @@ public class clientHandler implements Runnable {
                 username, myPublicIp, lanIp, audioPort, videoPort);
         meeting.participants.put(username, me);
 
-        // Tell the joiner about everyone else.
         StringBuilder peers = new StringBuilder();
         for (GroupCallManager.Participant p : meeting.participants.values()) {
             if (p.username.equals(username)) continue;
@@ -926,7 +843,6 @@ public class clientHandler implements Runnable {
         }
         envoyerAuClient("GROUP_CALL_PEERS|" + gid + "|" + meeting.type + "|" + peers);
 
-        // Tell every other participant that we joined.
         for (GroupCallManager.Participant p : meeting.participants.values()) {
             if (p.username.equals(username)) continue;
             clientHandler ch = SessionManager.getHandler(p.username);
@@ -937,7 +853,6 @@ public class clientHandler implements Runnable {
         }
     }
 
-    // GROUP_CALL_LEAVE|gid
     private void traiterSortieMeeting(String[] parts) {
         if (username == null || parts.length < 2) return;
         int gid;
@@ -960,7 +875,6 @@ public class clientHandler implements Runnable {
         }
     }
 
-    // CALL_HISTORY → returns the user's call history rows.
     private void traiterHistoriqueAppels(String[] parts) {
         if (username == null) return;
         User me = new UserDAO().getByUsername(username);
@@ -979,7 +893,6 @@ public class clientHandler implements Runnable {
                 User other = udao.getById(c.getReceiverId());
                 if (other != null) otherName = other.getUsername();
             }
-            // CALL_HISTORY|callId|callerName|otherName|type|status|duration|startedAt|isGroup
             envoyerAuClient("CALL_HISTORY|" + c.getId() + "|" + callerName + "|" + otherName + "|"
                     + (c.getType() == null ? "audio" : c.getType()) + "|"
                     + (c.getStatus() == null ? "ended" : c.getStatus()) + "|"
@@ -990,11 +903,6 @@ public class clientHandler implements Runnable {
         envoyerAuClient("CALL_HISTORY_END");
     }
 
-    // ───────────────────────────────────────────────────────────
-    //  Edit / delete messages
-    // ───────────────────────────────────────────────────────────
-
-    // MSG_EDIT_PRIV|<peer>|<mid>|<newContent>
     private void traiterEditMessagePrive(String[] parts) {
         if (username == null || parts.length < 4) return;
         String peer = parts[1].trim();
@@ -1009,14 +917,12 @@ public class clientHandler implements Runnable {
             envoyerAuClient("MSG_EDIT_FAIL|" + peer + "|" + mid);
             return;
         }
-        // Notify both sides so each can update its rendered bubble.
         String wire = "MSG_EDITED_PRIV|" + username + "|" + peer + "|" + mid + "|" + newContent;
         envoyerAuClient(wire);
         clientHandler other = SessionManager.getHandler(peer);
         if (other != null) other.envoyerAuClient(wire);
     }
 
-    // MSG_DELETE_PRIV|<peer>|<mid>
     private void traiterDeleteMessagePrive(String[] parts) {
         if (username == null || parts.length < 3) return;
         String peer = parts[1].trim();
@@ -1035,7 +941,6 @@ public class clientHandler implements Runnable {
         if (other != null) other.envoyerAuClient(wire);
     }
 
-    // MSG_EDIT_GROUP|<gid>|<mid>|<newContent>
     private void traiterEditMessageGroupe(String[] parts) {
         if (username == null || parts.length < 4) return;
         int gid;
@@ -1060,7 +965,6 @@ public class clientHandler implements Runnable {
         }
     }
 
-    // MSG_DELETE_GROUP|<gid>|<mid>
     private void traiterDeleteMessageGroupe(String[] parts) {
         if (username == null || parts.length < 3) return;
         int gid;
@@ -1079,10 +983,6 @@ public class clientHandler implements Runnable {
             if (ch != null) ch.envoyerAuClient(wire);
         }
     }
-
-    // ───────────────────────────────────────────────────────────
-    //  Block / unblock
-    // ───────────────────────────────────────────────────────────
 
     private void traiterBlock(String[] parts, boolean block) {
         if (username == null || parts.length < 2) return;
@@ -1107,11 +1007,6 @@ public class clientHandler implements Runnable {
         envoyerAuClient("BLOCK_LIST|" + String.join(",", blocked));
     }
 
-    // ───────────────────────────────────────────────────────────
-    //  Leave group / meeting status
-    // ───────────────────────────────────────────────────────────
-
-    // GROUP_LEAVE|<gid>
     private void traiterQuitterGroupe(String[] parts) {
         if (username == null || parts.length < 2) return;
         int gid;
@@ -1123,7 +1018,6 @@ public class clientHandler implements Runnable {
         if (!gdao.isMember(gid, me.getId())) { envoyerAuClient("GROUP_LEFT|" + gid); return; }
         gdao.removeMember(gid, me.getId());
 
-        // Tell the leaver and the remaining members.
         envoyerAuClient("GROUP_LEFT|" + gid);
         Group g = gdao.getGroup(gid);
         if (g == null) return;
@@ -1135,7 +1029,6 @@ public class clientHandler implements Runnable {
         }
     }
 
-    // GROUP_CALL_STATUS|<gid>
     private void traiterStatutMeeting(String[] parts) {
         if (username == null || parts.length < 2) return;
         int gid;
@@ -1145,10 +1038,6 @@ public class clientHandler implements Runnable {
         else envoyerAuClient("GROUP_CALL_STATUS|" + gid + "|active|" + m.type
                 + "|" + m.participants.size());
     }
-
-    // ───────────────────────────────────────────────────────────
-    //  Dispatcher
-    // ───────────────────────────────────────────────────────────
 
     private void EnvoyerRequete(String data) throws Exception {
         String[] parts = data.split("\\|", 4);

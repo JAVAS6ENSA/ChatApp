@@ -5,11 +5,7 @@ import dao.OtpDAO;
 import java.security.SecureRandom;
 import java.sql.Timestamp;
 
-/**
- * Generates, sends and verifies the SMS one-time codes.
- * Codes are 6 digits, valid for {@link #TTL_MINUTES} minutes, with at most
- * {@link #MAX_ATTEMPTS} wrong tries before the code is burned.
- */
+
 public class OtpService {
 
     public static final int TTL_MINUTES = 5;
@@ -25,25 +21,20 @@ public class OtpService {
         this.sms = sms;
     }
 
-    /**
-     * Dev/demo mode: when the OTP_DEV_MODE env var is truthy, no SMS is sent.
-     * The code is logged on the server and returned to the client so any phone
-     * (or none at all) can register/login without Twilio. Never enable this in
-     * a real deployment.
-     */
+
     public boolean devMode() {
         String v = System.getenv("OTP_DEV_MODE");
         return v != null && (v.equals("1") || v.equalsIgnoreCase("true")
                 || v.equalsIgnoreCase("yes") || v.equalsIgnoreCase("on"));
     }
 
-    /** The currently-stored code for a phone (used to surface it in dev mode). */
+
     public String currentCode(String phone) {
         OtpDAO.Otp o = otpDAO.get(phone);
         return o == null ? null : o.code;
     }
 
-    /** Create a fresh code for the phone and text it. @return true if SMS accepted. */
+
     public boolean sendCode(String phone) {
         String code = String.format("%06d", rnd.nextInt(1_000_000));
         if (!otpDAO.save(phone, code, TTL_MINUTES)) {

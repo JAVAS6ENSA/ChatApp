@@ -3,13 +3,9 @@ package dao;
 import databases.DBConnection;
 import java.sql.*;
 
-/**
- * Persistence for the short-lived SMS verification codes.
- * One in-flight code per phone number; a resend simply REPLACEs the row.
- */
+
 public class OtpDAO {
 
-    /** A code as stored in the DB. */
     public static class Otp {
         public final String code;
         public final Timestamp expiresAt;
@@ -19,7 +15,7 @@ public class OtpDAO {
         }
     }
 
-    /** Store (or replace) the code for a phone, valid for ttlMinutes. */
+
     public boolean save(String phone, String code, int ttlMinutes) {
         String sql = "REPLACE INTO otp_codes (phone, code, expires_at, attempts) " +
                      "VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? MINUTE), 0)";

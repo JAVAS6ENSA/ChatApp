@@ -47,12 +47,6 @@ public class clientAPP {
         return null;
     }
 
-    /**
-     * The machine's LAN IPv4 — the address a same-network peer can reach us
-     * on. We "connect" a datagram socket to a public address (no packets are
-     * sent) so the OS picks the real outbound interface even on multi-NIC
-     * machines; fall back to scanning interfaces, then to localhost.
-     */
     public static String getLocalIp() {
         try (DatagramSocket s = new DatagramSocket()) {
             s.connect(InetAddress.getByName("8.8.8.8"), 53);

@@ -49,8 +49,6 @@ public class SessionManager {
         }
     }
 
-    // Notify every connected client about a user's status change.
-    // Format sent to clients: USER_STATUS|username|online   or   USER_STATUS|username|offline
     public static void broadcastStatus(String username, String status) {
         String msg = "USER_STATUS|" + username + "|" + status;
         for (clientHandler client : onlineClients.values()) {

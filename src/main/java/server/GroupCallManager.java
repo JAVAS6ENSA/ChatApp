@@ -8,8 +8,8 @@ public class GroupCallManager {
 
     public static class Participant {
         public final String username;
-        public String ip;          // public IP (as the server sees the socket)
-        public String lanIp;       // client-reported LAN IP, for same-NAT peers
+        public String ip;
+        public String lanIp;
         public int audioPort;
         public int videoPort;
         public final long joinedAt = System.currentTimeMillis();
@@ -27,11 +27,6 @@ public class GroupCallManager {
             this.videoPort = videoPort;
         }
 
-        /**
-         * Which of this participant's IPs should {@code recipientPublicIp}
-         * use? If both sit behind the same public IP (same WiFi/NAT) hand
-         * over the LAN IP — public→public can't hairpin. Otherwise public.
-         */
         public String ipFor(String recipientPublicIp) {
             if (lanIp != null && !lanIp.isBlank()
                     && ip != null && ip.equals(recipientPublicIp)) {
@@ -43,9 +38,9 @@ public class GroupCallManager {
 
     public static class Meeting {
         public final int groupId;
-        public final String type;          // audio / video
+        public final String type;
         public final String host;
-        public final int callRowId;        // row id in the `calls` table (for history)
+        public final int callRowId;
         public final long startedAtMs = System.currentTimeMillis();
         public final Map<String, Participant> participants = new ConcurrentHashMap<>();
 

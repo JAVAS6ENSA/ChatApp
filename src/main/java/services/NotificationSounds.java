@@ -8,19 +8,7 @@ import javax.sound.sampled.LineEvent;
 
 import java.io.ByteArrayInputStream;
 
-/**
- * Tiny notification-sound layer. We synthesise everything (sine + harmonic
- * waves with fade envelopes) so there are no asset files to ship and no
- * cross-platform decoder mismatches.
- *
- * Three categories of sound:
- *   - one-shot: messageSent, messageReceived
- *   - looped:   incoming ringtone, outgoing dial tone
- *
- * Clips are cached and rewound between plays. The looped clips can be
- * started/stopped explicitly so a ringtone keeps playing until the call is
- * answered, refused, or cancelled.
- */
+
 public class NotificationSounds {
 
     private static final int SAMPLE_RATE = 22050;
