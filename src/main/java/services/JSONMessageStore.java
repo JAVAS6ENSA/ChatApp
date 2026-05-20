@@ -1,0 +1,236 @@
+package services;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
+import model.ChatMessage;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.lang.reflect.Type;
+import java.util.*;
+
+public class JSONMessageStore {
+
+    private static final String FILE_PATH = "data_messages.json";
+    private Map<String, List<ChatMessage>> database;
+    private Set<String> blockedUsers;
+    private Set<String> hiddenConversations;
+    private Gson gson;
+
+    private static class StorageWrapper {
+        Map<String, List<ChatMessage>> messages = new HashMap<>();
+        Set<String> blockedUsers = new HashSet<>();
+        Set<String> hiddenConversations = new HashSet<>();
+    }
+
+    public JSONMessageStore() {
+        this.database = new HashMap<>();
+        this.blockedUsers = new HashSet<>();
+        this.hiddenConversations = new HashSet<>();
+        this.gson = new GsonBuilder().setPrettyPrinting().create();
+        load();
+    }
+
+    public void addMessage(ChatMessage msg, boolean isGroup, String groupName) {
+        String key = isGroup ? getGroupKey(groupName) : getConversationKey(msg.getSender(), msg.getReceiver());
+        List<ChatMessage> conv = database.computeIfAbsent(key, k -> new ArrayList<>());
+
+        // Idempotency: the same logical message can reach us more than once
+        // (live delivery + offline inbox push, reconnect replays, etc.). The
+        // client MID is carried in ChatMessage.timestamp when present, so an
+        // exact timestamp match is the same message. As a fallback for legacy
+        // messages that arrived without a MID (timestamp == currentMillis at
+        // receive time), treat same sender + same type + same content within a
+        // short window as a duplicate too.
+        if (msg != null && isDuplicate(conv, msg)) return;
+
+        conv.add(msg);
+
+        // Si un message arrive, on dé-cache la conversation
+        if (hiddenConversations.contains(key)) {
+            hiddenConversations.remove(key);
+        }
+        save();
+    }
+
+    private boolean isDuplicate(List<ChatMessage> conv, ChatMessage msg) {
+        if (conv == null || conv.isEmpty()) return false;
+        String sender  = msg.getSender();
+        String content = msg.getContent();
+        String type    = msg.getType();
+        long ts        = msg.getTimestamp();
+        for (ChatMessage m : conv) {
+            if (m == null) continue;
+            boolean sameSender  = sender  == null ? m.getSender()  == null : sender.equalsIgnoreCase(m.getSender());
+            boolean sameContent = content == null ? m.getContent() == null : content.equals(m.getContent());
+            if (!sameSender || !sameContent) continue;
+            if (m.getTimestamp() == ts) return true;            // same MID → same message
+            boolean sameType = type == null ? m.getType() == null
+                                            : type.equalsIgnoreCase(m.getType());
+            if (sameType && Math.abs(m.getTimestamp() - ts) <= 120_000L) return true; // legacy no-MID re-delivery
+        }
+        return false;
+    }
+
+    public List<ChatMessage> getConversation(String user1, String user2, boolean isGroup, String groupName) {
+        String key = isGroup ? getGroupKey(groupName) : getConversationKey(user1, user2);
+        return database.getOrDefault(key, new ArrayList<>());
+    }
+    
+    // --- NOUVELLES OPTIONS --- //
+    
+    public void editMessage(String user1, String user2, boolean isGroup, long targetTimestamp, String newContent) {
+        String key = isGroup ? getGroupKey(user2) : getConversationKey(user1, user2);
+        List<ChatMessage> list = database.get(key);
+        if (list != null) {
+            for (ChatMessage m : list) {
+                if (m.getTimestamp() == targetTimestamp) {
+                    m.setContent(newContent);
+                    m.setEdited(true);
+                    save();
+                    return;
+                }
+            }
+        }
+    }
+    
+    public void deleteMessage(String user1, String user2, boolean isGroup, long targetTimestamp) {
+        String key = isGroup ? getGroupKey(user2) : getConversationKey(user1, user2);
+        List<ChatMessage> list = database.get(key);
+        if (list != null) {
+            list.removeIf(m -> m.getTimestamp() == targetTimestamp);
+            save();
+        }
+    }
+
+    public void updateMessageStatus(String myUsername, String otherUsername, long targetTimestamp, String newStatus) {
+        String key = getConversationKey(myUsername, otherUsername);
+        List<ChatMessage> list = database.get(key);
+        if (list == null) return;
+        for (ChatMessage m : list) {
+            if (m.getTimestamp() == targetTimestamp && m.getSender().equalsIgnoreCase(myUsername)) {
+                m.setStatus(newStatus);
+                save();
+                return;
+            }
+        }
+    }
+
+    public void markPendingDelivered(String myUsername, String otherUsername) {
+        String key = getConversationKey(myUsername, otherUsername);
+        List<ChatMessage> list = database.get(key);
+        if (list == null) return;
+        boolean dirty = false;
+        for (ChatMessage m : list) {
+            if (m.getSender().equalsIgnoreCase(myUsername) && "sent".equalsIgnoreCase(m.getStatus())) {
+                m.setStatus("delivered");
+                dirty = true;
+            }
+        }
+        if (dirty) save();
+    }
+
+    /**
+     * Return the set of usernames that have at least one private message
+     * stored locally with the given user. Used to surface conversations even
+     * when the peer isn't in the receiver's contacts table — for example when
+     * a brand-new account sends a message to someone who never added them.
+     */
+    public Set<String> getConversationPeers(String myUsername) {
+        Set<String> peers = new HashSet<>();
+        if (myUsername == null) return peers;
+        for (Map.Entry<String, List<ChatMessage>> entry : database.entrySet()) {
+            String key = entry.getKey();
+            if (key == null || key.startsWith("GROUP_")) continue;
+            List<ChatMessage> list = entry.getValue();
+            if (list == null) continue;
+            for (ChatMessage m : list) {
+                if (m == null) continue;
+                if (myUsername.equalsIgnoreCase(m.getSender()) && m.getReceiver() != null) {
+                    peers.add(m.getReceiver());
+                } else if (myUsername.equalsIgnoreCase(m.getReceiver()) && m.getSender() != null) {
+                    peers.add(m.getSender());
+                }
+            }
+        }
+        return peers;
+    }
+    
+    public void deleteConversation(String user1, String user2, boolean isGroup) {
+        String key = isGroup ? getGroupKey(user2) : getConversationKey(user1, user2);
+        hiddenConversations.add(key);
+        save();
+    }
+    
+    public boolean isHidden(String user1, String user2, boolean isGroup) {
+        String key = isGroup ? getGroupKey(user2) : getConversationKey(user1, user2);
+        return hiddenConversations.contains(key);
+    }
+    
+    public void blockUser(String user) {
+        blockedUsers.add(user);
+        save();
+    }
+    
+    public void unblockUser(String user) {
+        blockedUsers.remove(user);
+        save();
+    }
+    
+    public boolean isBlocked(String user) {
+        return blockedUsers.contains(user);
+    }
+
+    // --- INTERNES --- //
+
+    private String getConversationKey(String u1, String u2) {
+        String[] users = {u1, u2};
+        Arrays.sort(users);
+        return users[0] + "_" + users[1];
+    }
+
+    private String getGroupKey(String groupName) {
+        return "GROUP_" + groupName;
+    }
+
+    private void save() {
+        try (FileWriter writer = new FileWriter(FILE_PATH)) {
+            StorageWrapper wrap = new StorageWrapper();
+            wrap.messages = this.database;
+            wrap.blockedUsers = this.blockedUsers;
+            wrap.hiddenConversations = this.hiddenConversations;
+            gson.toJson(wrap, writer);
+        } catch (Exception e) {
+            System.err.println("Erreur sauvegarde JSON: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void load() {
+        File file = new File(FILE_PATH);
+        if (!file.exists()) return;
+        
+        try (FileReader reader = new FileReader(file)) {
+            JsonElement root = JsonParser.parseReader(reader);
+            if (root.isJsonObject() && root.getAsJsonObject().has("messages")) {
+                // Nouveau Format
+                StorageWrapper wrap = gson.fromJson(root, StorageWrapper.class);
+                if (wrap.messages != null) database = wrap.messages;
+                if (wrap.blockedUsers != null) this.blockedUsers = wrap.blockedUsers;
+                if (wrap.hiddenConversations != null) this.hiddenConversations = wrap.hiddenConversations;
+            } else if (root.isJsonObject()) {
+                // Ancien format (Migration silencieuse)
+                Type mapType = new TypeToken<Map<String, List<ChatMessage>>>() {}.getType();
+                Map<String, List<ChatMessage>> oldMap = gson.fromJson(root, mapType);
+                if (oldMap != null) database = oldMap;
+            }
+        } catch (Exception e) {
+            System.err.println("Erreur lecture JSON: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}

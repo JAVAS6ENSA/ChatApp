@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="Views.LoginController" styleClass="app-root">
+    <VBox maxWidth="420" spacing="14" styleClass="auth-card" alignment="CENTER_LEFT">
+        <padding><Insets top="32" right="32" bottom="32" left="32"/></padding>
+        <Label text="ChatApp" styleClass="title-lg"/>
+        <Label text="Sign in with your phone number" styleClass="text-muted"/>
+
+        <Label text="Phone number" styleClass="text-muted"/>
+        <TextField fx:id="phoneField" promptText="e.g. +212600000000" styleClass="input-dark"/>
+
+        <Label fx:id="errorLabel" wrapText="true" styleClass="text-muted"/>
+
+        <HBox spacing="10">
+            <Button fx:id="loginButton" text="Send code" onAction="#handleLogin" styleClass="btn-primary"/>
+            <Button text="Create account" onAction="#goToRegister" styleClass="btn-ghost"/>
+        </HBox>
+    </VBox>
+</StackPane>

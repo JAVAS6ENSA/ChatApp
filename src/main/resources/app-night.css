@@ -1,0 +1,81 @@
+/* Dark theme overrides — applied on top of app-dark.css when night mode is on. */
+
+.app-root         { -fx-background-color: #0b141a; }
+.sidebar          { -fx-background-color: #111b21; -fx-border-color: #1f2c33; }
+.sidebar-header   { -fx-background-color: #1f2c33; -fx-border-color: #2a3942; }
+.chat-area        { -fx-background-color: #0b141a; }
+.chat-header      { -fx-background-color: #1f2c33; -fx-border-color: #2a3942; }
+.chat-input-bar   { -fx-background-color: #1f2c33; -fx-border-color: #2a3942; }
+.tab-bar          { -fx-background-color: #1f2c33; -fx-border-color: #2a3942; }
+.typing-indicator { -fx-background-color: #1f2c33; -fx-border-color: #2a3942; }
+.join-meeting-banner { -fx-background-color: #1f4d3e; -fx-border-color: #2a3942; }
+.join-meeting-text   { -fx-text-fill: #d9fdd3; }
+
+.title-md         { -fx-text-fill: #e9edef; }
+.title-lg         { -fx-text-fill: #e9edef; }
+.section-title    { -fx-text-fill: #e9edef; }
+.text-muted       { -fx-text-fill: #8696a0; }
+.contact-name     { -fx-text-fill: #e9edef; }
+.contact-preview  { -fx-text-fill: #8696a0; }
+
+.input-dark {
+    -fx-background-color: #2a3942;
+    -fx-text-fill: #e9edef;
+    -fx-prompt-text-fill: #8696a0;
+    -fx-border-color: #2a3942;
+}
+.input-dark:focused { -fx-border-color: #25d366; }
+
+.contact-row {
+    -fx-background-color: #111b21;
+    -fx-border-color: #1f2c33;
+}
+.contact-row:hover { -fx-background-color: #1f2c33; }
+.contact-row-active { -fx-background-color: #2a3942; }
+.contact-row-blocked { -fx-opacity: 0.55; }
+
+.btn-icon-grey {
+    -fx-background-color: #2a3942;
+}
+.btn-icon-grey:hover {
+    -fx-background-color: #364a52;
+}
+.icon-grey { -fx-fill: #aebac1; }
+
+.tab-btn { -fx-text-fill: #8696a0; }
+.tab-btn:hover { -fx-background-color: #1f2c33; }
+.tab-btn-active { -fx-text-fill: #25d366; -fx-border-color: transparent transparent #25d366 transparent; }
+
+.bubble-mine {
+    -fx-background-color: #005c4b;
+}
+.bubble-other {
+    -fx-background-color: #202c33;
+}
+.bubble-text { -fx-text-fill: #e9edef; }
+.bubble-time { -fx-text-fill: #8696a0; }
+.bubble-edited { -fx-text-fill: #8696a0; -fx-font-style: italic; -fx-font-size: 10; }
+.bubble-deleted { -fx-text-fill: #8696a0; -fx-font-style: italic; }
+.bubble-system { -fx-background-color: #182229; }
+.bubble-system-text { -fx-text-fill: #aebac1; }
+
+.file-chip { -fx-background-color: rgba(255,255,255,0.05); }
+.file-chip-name { -fx-text-fill: #e9edef; }
+.file-chip-meta { -fx-text-fill: #8696a0; }
+
+.scroll-dark { -fx-background: #0b141a; -fx-background-color: #0b141a; }
+.scroll-dark .viewport { -fx-background-color: #0b141a; }
+
+.call-banner { -fx-background-color: #1f4d3e; }
+.call-banner-text { -fx-text-fill: #d9fdd3; }
+
+.call-row { -fx-background-color: #111b21; -fx-border-color: #1f2c33; }
+.call-row:hover { -fx-background-color: #1f2c33; }
+.call-meta  { -fx-text-fill: #8696a0; }
+
+.card { -fx-background-color: #1f2c33; -fx-border-color: #2a3942; }
+.dialog-pane { -fx-background-color: #1f2c33; }
+.dialog-pane .label,
+.dialog-pane .header-panel .label { -fx-text-fill: #e9edef; }
+
+.auth-card { -fx-background-color: #1f2c33; -fx-border-color: #2a3942; }

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<StackPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="Views.VerifyController" styleClass="app-root">
+    <VBox maxWidth="420" spacing="14" styleClass="auth-card" alignment="CENTER_LEFT">
+        <padding><Insets top="32" right="32" bottom="32" left="32"/></padding>
+        <Label text="Enter verification code" styleClass="title-lg"/>
+        <Label fx:id="infoLabel" wrapText="true" styleClass="text-muted"/>
+
+        <Label text="6-digit code" styleClass="text-muted"/>
+        <TextField fx:id="codeField" promptText="123456" styleClass="input-dark"/>
+
+        <Label fx:id="errorLabel" wrapText="true" styleClass="text-muted"/>
+
+        <HBox spacing="10">
+            <Button fx:id="verifyButton" text="Verify" onAction="#handleVerify" styleClass="btn-primary"/>
+            <Button fx:id="resendButton" text="Resend code" onAction="#handleResend" styleClass="btn-ghost"/>
+            <Button text="Back" onAction="#goBack" styleClass="btn-ghost"/>
+        </HBox>
+    </VBox>
+</StackPane>
